@@ -63,18 +63,14 @@ export function createApiClient(
     medicationUses: (body: MedicationUsesRequest) =>
       request<MedicationUsesResponse>('/api/medications/uses', { method: 'POST', body: JSON.stringify(body) }),
 
-    register: (body: { name: string; email: string; password: string }) =>
+    register: (body: { name: string; email: string; password: string; securityAnswer: string }) =>
       request<{ token: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
 
     login: (body: { email: string; password: string }) =>
       request<{ token: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
-    /** Emails a reset link if the account exists. Resolves the same way either way. */
-    forgotPassword: (email: string) =>
-      request<{ ok: true }>('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
-
-    /** Sets a new password from an emailed reset link and signs the user in. */
-    resetPassword: (body: { token: string; password: string }) =>
+    /** Sets a new password after answering the security question, and signs the user in. */
+    resetPassword: (body: { email: string; securityAnswer: string; password: string }) =>
       request<{ token: string }>('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(body) }),
 
     getProfile: () => request<Profile>('/api/profile'),

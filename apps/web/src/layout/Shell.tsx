@@ -57,18 +57,6 @@ export function Footer() {
     <footer className="wrap">
       <div className="foot card">
         <Brand />
-        <div className="alert">
-          <span className="icon-btn"><Icon name="siren" /></span>
-          <div>
-            <h4>In an emergency, call 911</h4>
-            <p>
-              If you think you are having a medical emergency, call 911 or your local emergency number right away.
-              medify.Rx is a learning and discovery tool. It does not give professional medical advice, diagnosis or
-              treatment. Always ask your doctor, pharmacist or another qualified health professional about your health
-              and your medicines.
-            </p>
-          </div>
-        </div>
         <div className="foot-bottom">
           <span>© 2026 medify.Rx. Hackathon prototype using synthetic data only.</span>
           <nav aria-label="Footer">
