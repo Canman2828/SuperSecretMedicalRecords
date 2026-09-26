@@ -1,4 +1,4 @@
-import type { Annotation, AnnotationCategory, BBox } from '@medifyrx/shared';
+import type { Annotation, AnnotationCategory, BBox, MedicationUse } from '@medifyrx/shared';
 import * as Speech from 'expo-speech';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
@@ -139,6 +139,23 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
   const [plain, setPlain] = useState<Plain>({ segments: glossaryPlain, source: 'glossary', loading: false });
   const language = LANGUAGES[lang];
 
+  // "What it's used for" — sourced from the official FDA label (openFDA), keyed off the
+  // medications OCR/the profile already identified. Independent of the plain-language rewrite.
+  const medsKey = useMemo(() => knownMedications.join('|'), [knownMedications]);
+  const [uses, setUses] = useState<MedicationUse[]>([]);
+  useEffect(() => {
+    if (!knownMedications.length) return setUses([]);
+    let live = true;
+    api
+      .medicationUses({ medications: knownMedications })
+      .then((r) => live && setUses(r.uses.filter((u) => u.usedFor)))
+      .catch(() => live && setUses([]));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [medsKey]);
+
   // AI rewrite; the glossary-only version shows until it arrives, and stays if AI is unavailable.
   useEffect(() => {
     if (!clean) return;
@@ -203,6 +220,7 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
           <Text style={styles.langText}>🌐 {language.label}</Text>
         </Pressable>
       }
+      extra={uses.length ? <UsesBlock uses={uses} /> : null}
     >
       <SegmentText segments={plain.segments} />
     </Pane>
@@ -240,6 +258,7 @@ function Pane({
   playing,
   onPlay,
   children,
+  extra,
 }: {
   title: string;
   note?: string;
@@ -247,6 +266,8 @@ function Pane({
   playing: boolean;
   onPlay: () => void;
   children: ReactNode;
+  /** Rendered below the body, inside the scroll — used for the "What it's used for" block. */
+  extra?: ReactNode;
 }) {
   return (
     <View style={styles.pane}>
@@ -257,10 +278,27 @@ function Pane({
       {note ? <Text style={styles.note}>{note}</Text> : null}
       <ScrollView style={styles.paneScroll}>
         <Text style={styles.body}>{children}</Text>
+        {extra}
       </ScrollView>
       <Pressable style={styles.play} onPress={onPlay} accessibilityRole="button">
         <Text style={styles.playText}>{playing ? '⏸ Stop' : '🔊 Listen'}</Text>
       </Pressable>
+    </View>
+  );
+}
+
+/** Sourced "what it's used for" summaries, condensed from each drug's FDA label. */
+function UsesBlock({ uses }: { uses: MedicationUse[] }) {
+  return (
+    <View style={styles.uses}>
+      <Text style={styles.usesTitle}>💊 What it's used for</Text>
+      {uses.map((u) => (
+        <Text key={u.medication} style={styles.useLine}>
+          <Text style={styles.useMed}>{u.medication}: </Text>
+          {u.usedFor}
+        </Text>
+      ))}
+      <Text style={styles.usesSource}>Source: FDA label (DailyMed) · not medical advice</Text>
     </View>
   );
 }
@@ -320,4 +358,9 @@ const styles = StyleSheet.create({
   langText: { fontSize: 11, fontWeight: '700', color: '#0d9488' },
   play: { backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
   playText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  uses: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)', gap: 3 },
+  usesTitle: { fontSize: 12, fontWeight: '800', color: '#0d9488' },
+  useLine: { fontSize: 13, lineHeight: 19, color: '#111827' },
+  useMed: { fontWeight: '700', textTransform: 'capitalize' },
+  usesSource: { fontSize: 10, color: '#6b7280', marginTop: 2 },
 });

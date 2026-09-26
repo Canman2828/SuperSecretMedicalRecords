@@ -6,6 +6,7 @@ import { chatRouter } from './routes/chat.js';
 import { drugsRouter } from './routes/drugs.js';
 import { explainRouter } from './routes/explain.js';
 import { interactionsRouter } from './routes/interactions.js';
+import { medicationsRouter } from './routes/medications.js';
 import { profileRouter } from './routes/profile.js';
 import { translateRouter } from './routes/translate.js';
 
@@ -26,6 +27,7 @@ export function createApp() {
   app.use('/api/drugs', drugsRouter);
   app.use('/api/explain', explainRouter);
   app.use('/api/interactions', interactionsRouter);
+  app.use('/api/medications', medicationsRouter);
   app.use('/api/profile', profileRouter);
   app.use('/api/translate', translateRouter);
 

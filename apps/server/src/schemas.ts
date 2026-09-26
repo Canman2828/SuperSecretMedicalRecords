@@ -84,3 +84,7 @@ export const translateSchema = z.object({
   language: z.string().trim().min(1).max(40).optional(),
   knownMedications: z.array(z.string().min(1).max(200)).max(100).optional(),
 });
+
+export const medicationUsesSchema = z.object({
+  medications: z.array(z.string().trim().min(1).max(200)).min(1).max(20),
+});

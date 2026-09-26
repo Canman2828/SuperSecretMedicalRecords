@@ -6,6 +6,8 @@ import type {
   ExplainResponse,
   InteractionCheckRequest,
   InteractionCheckResponse,
+  MedicationUsesRequest,
+  MedicationUsesResponse,
   Profile,
   TranslateRequest,
   TranslateResponse,
@@ -50,6 +52,10 @@ export function createApiClient(baseUrl: string, getToken?: () => string | null 
     /** Plain-language / translated version of scanned text. Protected values come back unchanged. */
     translate: (body: TranslateRequest) =>
       request<TranslateResponse>('/api/translate', { method: 'POST', body: JSON.stringify(body) }),
+
+    /** What each medication is used for, condensed from the official FDA label (sourced, cites DailyMed). */
+    medicationUses: (body: MedicationUsesRequest) =>
+      request<MedicationUsesResponse>('/api/medications/uses', { method: 'POST', body: JSON.stringify(body) }),
 
     register: (body: { name: string; email: string; password: string }) =>
       request<{ token: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),

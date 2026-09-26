@@ -166,6 +166,30 @@ export interface ExplainResponse {
   needsVerification: boolean;
 }
 
+// ---------- "What it's used for" (openFDA indications) ----------
+
+/** Ask what one or more medications are used for. Names come from the OCR/profile. */
+export interface MedicationUsesRequest {
+  medications: string[];
+}
+
+/**
+ * A short, patient-friendly summary of what a medicine treats, condensed from the
+ * official FDA label. Sourced information, not medical advice — always cite `sourceUrl`.
+ */
+export interface MedicationUse {
+  /** The name as queried (so the client can match it back to a highlight). */
+  medication: string;
+  /** Short plain-language line, e.g. "bacterial infections". Null if no label was found. */
+  usedFor: string | null;
+  /** DailyMed page for the label the summary came from, when available. */
+  sourceUrl?: string;
+}
+
+export interface MedicationUsesResponse {
+  uses: MedicationUse[];
+}
+
 // ---------- Medication chat ----------
 
 export interface ChatMessage {
