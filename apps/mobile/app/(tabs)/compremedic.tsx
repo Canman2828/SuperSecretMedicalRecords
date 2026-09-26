@@ -1,7 +1,8 @@
 import type { MedDocument } from '@medifyrx/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../src/api';
 import { useAuth } from '../../src/auth/AuthContext';
 import { captureFromCamera, captureFromLibrary } from '../../src/compremedic/capture';
@@ -44,6 +45,7 @@ export default function CompremedicScreen() {
   const [docs, setDocs] = useState<MedDocument[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<MedDocument | null>(null);
 
   const knownMedications = useMemo(
     () => profile.medications.map((m) => m.normalizedName ?? m.enteredName),
@@ -263,14 +265,82 @@ export default function CompremedicScreen() {
             {docs.length > 0 && (
               <View style={styles.savedList}>
                 {docs.map((d) => (
-                  <SavedRow key={d.id} doc={d} onDelete={() => confirmRemove(d)} />
+                  <SavedRow key={d.id} doc={d} onOpen={() => setViewing(d)} onDelete={() => confirmRemove(d)} />
                 ))}
               </View>
             )}
           </View>
         )}
       </Panel>
+
+      <SavedDocModal
+        doc={viewing}
+        onClose={() => setViewing(null)}
+        onDelete={() => {
+          const v = viewing;
+          setViewing(null);
+          if (v) confirmRemove(v);
+        }}
+      />
     </Screen>
+  );
+}
+
+// Full-screen view of a saved document: the whole photo plus its text, read aloud on demand.
+// Works on any device signed in to the account (the photo + text come from the cloud).
+function SavedDocModal({ doc, onClose, onDelete }: { doc: MedDocument | null; onClose: () => void; onDelete: () => void }) {
+  const insets = useSafeAreaInsets();
+  const speech = useSpeech();
+  if (!doc) return null;
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={styles.viewer}>
+        <View style={[styles.viewerBar, { paddingTop: insets.top + 6 }]}>
+          <Text style={styles.viewerTitle} numberOfLines={1}>{doc.docType ?? 'Document'}</Text>
+          <IconBtn icon="x" label="Close" size={40} onPress={onClose} />
+        </View>
+        <ScrollView contentContainerStyle={[styles.viewerBody, { paddingBottom: insets.bottom + 28 }]}>
+          <Image
+            source={{ uri: `data:${doc.mimeType};base64,${doc.imageBase64}` }}
+            style={styles.viewerImage}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+            accessibilityLabel="Saved document photo"
+          />
+          <Text style={styles.savedDate}>Saved {new Date(doc.createdAt).toLocaleString()}</Text>
+
+          {doc.originalText ? (
+            <View style={styles.viewerPane}>
+              <Label style={{ marginBottom: 0 }}>Original text</Label>
+              <View style={styles.paneBox}>
+                <Text style={[styles.paneText, styles.orig]}>{doc.originalText}</Text>
+              </View>
+              <Player
+                label="Listen to original"
+                playing={speech.playing === 'v-orig'}
+                disabled={!doc.originalText}
+                onPlay={(rate) => speech.toggle('v-orig', doc.originalText ?? '', rate)}
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.viewerPane}>
+            <Label style={{ marginBottom: 0 }}>In plain words</Label>
+            <View style={styles.paneBox}>
+              <Text style={styles.paneText}>{doc.plainText}</Text>
+            </View>
+            <Player
+              label="Listen to plain version"
+              playing={speech.playing === 'v-plain'}
+              disabled={!doc.plainText}
+              onPlay={(rate) => speech.toggle('v-plain', doc.plainText, rate)}
+            />
+          </View>
+
+          <Btn label="Delete document" iconLeft="trash" variant="neu" full onPress={onDelete} />
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -334,21 +404,29 @@ function Drop({
   );
 }
 
-function SavedRow({ doc, onDelete }: { doc: MedDocument; onDelete: () => void }) {
+function SavedRow({ doc, onOpen, onDelete }: { doc: MedDocument; onOpen: () => void; onDelete: () => void }) {
   return (
     <View style={styles.savedRow}>
-      <Image
-        source={{ uri: `data:${doc.mimeType};base64,${doc.imageBase64}` }}
-        style={styles.thumb}
-        accessibilityIgnoresInvertColors
-      />
-      <View style={{ flex: 1, gap: 3 }}>
-        <Text style={styles.savedType}>{doc.docType ?? 'Document'}</Text>
-        <Text style={styles.savedDate}>{new Date(doc.createdAt).toLocaleDateString()}</Text>
-        <Text style={styles.savedText} numberOfLines={2}>
-          {doc.plainText}
-        </Text>
-      </View>
+      <Pressable
+        style={styles.savedMain}
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${doc.docType ?? 'document'}`}
+      >
+        <Image
+          source={{ uri: `data:${doc.mimeType};base64,${doc.imageBase64}` }}
+          style={styles.thumb}
+          accessibilityIgnoresInvertColors
+        />
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={styles.savedType}>{doc.docType ?? 'Document'}</Text>
+          <Text style={styles.savedDate}>{new Date(doc.createdAt).toLocaleDateString()}</Text>
+          <Text style={styles.savedText} numberOfLines={2}>
+            {doc.plainText}
+          </Text>
+        </View>
+        <Icon name="chevron-right" size={18} color={C.ink3} />
+      </Pressable>
       <IconBtn icon="trash" label="Delete document" onPress={onDelete} />
     </View>
   );
@@ -450,8 +528,15 @@ const styles = StyleSheet.create({
   term: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   saveNotice: { fontFamily: F.bodyBold, fontSize: 14, lineHeight: 20, color: C.ink2 },
   savedList: { gap: 12, marginTop: 4 },
-  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: R.lg, backgroundColor: C.bg, boxShadow: SH.in },
+  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: R.lg, backgroundColor: C.bg, boxShadow: SH.in },
+  savedMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
   thumb: { width: 54, height: 54, borderRadius: 12, backgroundColor: C.surface },
+  viewer: { flex: 1, backgroundColor: C.bg },
+  viewerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingBottom: 6 },
+  viewerTitle: { flex: 1, fontFamily: F.head, fontSize: 20, color: C.ink },
+  viewerBody: { paddingHorizontal: 16, gap: 18 },
+  viewerImage: { width: '100%', height: 420, borderRadius: R.lg, backgroundColor: C.surface },
+  viewerPane: { gap: 12 },
   savedType: { fontFamily: F.head, fontSize: 15, color: C.ink },
   savedDate: { fontFamily: F.headBold, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: C.ink3 },
   savedText: { fontFamily: F.body, fontSize: 13, lineHeight: 18, color: C.ink3 },
