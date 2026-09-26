@@ -22,7 +22,7 @@ export function RelationshipDetails({ relationship: r, nodes, onClose }: Props) 
         <strong>{label(r.sourceNodeId)}</strong> ↕ <strong>{label(r.targetNodeId)}</strong>
       </p>
 
-      <h4>What was found</h4>
+      <h4>Why this is shown</h4>
       <p>{r.explanation ?? 'See the source below.'}</p>
 
       {r.sourceText && (
@@ -32,7 +32,7 @@ export function RelationshipDetails({ relationship: r, nodes, onClose }: Props) 
         </>
       )}
 
-      <h4>Source</h4>
+      <h4>Where this comes from</h4>
       <p>
         {r.source.label ?? r.source.organization}
         {r.source.url && (
