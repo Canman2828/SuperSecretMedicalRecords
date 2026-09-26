@@ -1,6 +1,12 @@
 import { NO_RESULT_DISCLAIMER, type InteractionCheckResponse, type ProfileNode, type Relationship } from '@medifyrx/shared';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Icon } from '../ui/Icon';
+import { HandGestures, type HandCursor } from './handGestures';
+
+/** Hand controls only: how far (px) outside an orb a pinch still picks it. Scales a bit with the view size. */
+const handSlop = (width: number) => Math.max(56, Math.min(110, width * 0.07));
+/** How often the "what's under the hand" highlight is recomputed. */
+const HOVER_MS = 80;
 import { NODE_CAPTION, STATUS_STYLE, TONE } from './status';
 import { TreeScene, type ViewMode } from './treeScene';
 
@@ -31,10 +37,18 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
   const [arSupported, setArSupported] = useState(false);
   const [ar, setAr] = useState<'off' | 'searching' | 'placed'>('off');
   const [notice, setNotice] = useState<string | null>(null);
+  // Hand controls (Camera view only): off → loading → ready.
+  const [hands, setHands] = useState<'off' | 'loading' | 'ready'>('off');
+  const cursorLayer = useRef<HTMLDivElement>(null);
+  const [mirrored, setMirrored] = useState(false);
+  const mirroredRef = useRef(false);
+  mirroredRef.current = mirrored;
 
   const nodes = data?.nodes ?? [];
   const rels = data?.relationships ?? [];
   const byId = (id: string) => nodes.find((n) => n.id === id);
+  const nodeNameRef = useRef((id: string) => nodeName(byId(id)));
+  nodeNameRef.current = (id: string) => nodeName(byId(id));
 
   useImperativeHandle(ref, () => ({
     revealCenter: (ms) => engine.current?.revealCenter(ms),
@@ -92,6 +106,9 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
         stream = s;
         if (video.current) video.current.srcObject = s;
+        // Laptop webcams and selfie cameras face the user: show them mirrored so hand movements feel natural.
+        const facing = s.getVideoTracks()[0]?.getSettings().facingMode;
+        setMirrored(facing !== 'environment');
       })
       .catch(() => {
         setNotice('We couldn’t open your camera. Check the camera permission for this site.');
@@ -106,6 +123,69 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, [mode]);
+
+  // Hand controls switch on automatically whenever Camera view opens (the button can still turn them off).
+  useEffect(() => {
+    setHands(mode === 'camera' ? 'loading' : 'off');
+  }, [mode]);
+
+  // Hand gestures run only in Camera view, while switched on.
+  useEffect(() => {
+    if (hands === 'off' || mode !== 'camera' || !video.current) return;
+    // Cursors are drawn straight into the DOM (no React re-render per tracked frame).
+    let lastHover = 0;
+    const drawCursors = (cursors: HandCursor[]) => {
+      const layer = cursorLayer.current;
+      const b = box.current;
+      if (!layer || !b) return;
+      while (layer.children.length < cursors.length) {
+        const el = document.createElement('div');
+        el.className = 'hand-cursor';
+        el.appendChild(document.createElement('span')).className = 'hand-label';
+        layer.appendChild(el);
+      }
+      while (layer.children.length > cursors.length) layer.lastElementChild!.remove();
+      const r = b.getBoundingClientRect();
+      const now = performance.now();
+      const refreshHover = now - lastHover > HOVER_MS;
+      if (refreshHover) lastHover = now;
+      let hovered: string | null = null;
+      cursors.forEach((c, i) => {
+        const el = layer.children[i] as HTMLDivElement;
+        el.style.transform = `translate3d(${c.x - r.left}px, ${c.y - r.top}px, 0)`;
+        el.classList.toggle('pinch', c.pinching);
+        if (refreshHover) {
+          const id = engine.current?.nodeAtScreen(c.x, c.y, handSlop(r.width)) ?? null;
+          hovered ??= id;
+          const label = el.firstElementChild as HTMLSpanElement;
+          label.textContent = id ? nodeNameRef.current(id) : '';
+          label.hidden = !id;
+        }
+      });
+      if (refreshHover) engine.current?.setHover(hovered);
+    };
+    const g = new HandGestures(video.current, () => mirroredRef.current, {
+      // A full-width sideways drag spins the tree half a turn.
+      onDrag: (dx) => engine.current?.orbitBy((-dx / Math.max(1, box.current!.clientWidth)) * Math.PI),
+      onZoom: (f) => engine.current?.zoomBy(f),
+      onSelect: (x, y) => engine.current?.clickAt(x, y, handSlop(box.current?.clientWidth ?? 800)),
+      onCursors: drawCursors,
+    });
+    let stopped = false;
+    g.start()
+      .then(() => !stopped && setHands('ready'))
+      .catch(() => {
+        if (stopped) return;
+        setNotice('Hand tracking couldn’t start. It needs an internet connection the first time.');
+        setHands('off');
+      });
+    return () => {
+      stopped = true;
+      g.stop();
+      drawCursors([]);
+      engine.current?.setHover(null);
+    };
+  }, [hands === 'off', mode]);
 
   // In AR, taps on the overlay's buttons shouldn't also count as taps in the 3D scene.
   useEffect(() => {
@@ -132,8 +212,10 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
 
   return (
     <div className={`tree3d${mode === 'camera' ? ' camera' : ''}${ar !== 'off' ? ' in-ar' : ''}`} ref={box}>
-      <video ref={video} className="tree3d-video" autoPlay playsInline muted hidden={mode !== 'camera'} />
+      <video ref={video} className={`tree3d-video${mirrored ? ' mirror' : ''}`} autoPlay playsInline muted hidden={mode !== 'camera'} />
       <canvas ref={canvas} className="tree3d-canvas" aria-label="3D map of how your medicines, allergies and foods interact" />
+
+      <div className="hand-cursors" ref={cursorLayer} aria-hidden="true" />
 
       <div className="tree3d-hud" ref={hud}>
         <div className="tree3d-top">
@@ -141,6 +223,11 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
             <div className="seg" role="group" aria-label="View">
               <button aria-pressed={mode === '3d'} onClick={() => setMode('3d')}><Icon name="cube" size={15} />3D view</button>
               <button aria-pressed={mode === 'camera'} onClick={() => setMode('camera')}><Icon name="camera" size={15} />Camera view</button>
+              {mode === 'camera' && (
+                <button aria-pressed={hands !== 'off'} onClick={() => setHands((h) => (h === 'off' ? 'loading' : 'off'))}>
+                  <Icon name="highfive" size={15} />Hand controls
+                </button>
+              )}
               {arSupported && (
                 <button aria-pressed={false} onClick={startAR}><Icon name="vr" size={15} />Place on a table (AR)</button>
               )}
@@ -156,6 +243,12 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
         </div>
 
         {loading && <span className="tree3d-chip">Checking drug labels for foods to avoid…</span>}
+        {mode === 'camera' && hands === 'loading' && <span className="tree3d-chip">Starting hand tracking…</span>}
+        {mode === 'camera' && hands === 'ready' && (
+          <span className="tree3d-chip hand-help">
+            <b>Pinch</b> to select · <b>pinch and move sideways</b> to spin · <b>pinch with both hands</b> and pull apart to zoom
+          </span>
+        )}
         {notice && (
           <span className="tree3d-chip warn" role="status">
             {notice}
