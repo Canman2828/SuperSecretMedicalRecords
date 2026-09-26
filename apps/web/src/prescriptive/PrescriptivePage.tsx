@@ -80,10 +80,11 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
     }
   };
 
-  const unconnectedMeds = result
+  // Every profile item with no documented relationship. "Not found" is reported as exactly that, never as "safe".
+  const unconnected = result
     ? result.nodes.filter(
         (n) =>
-          n.type === 'medication' &&
+          n.type !== 'patient' &&
           !result.relationships.some((r) => r.sourceNodeId === n.id || r.targetNodeId === n.id),
       )
     : [];
@@ -186,12 +187,20 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
             ))}
           </div>
 
-          {result && unconnectedMeds.length > 0 && (
-            <p className="muted small">
-              No relationships found in the sources checked for: {unconnectedMeds.map((n) => n.label).join(', ')}.
-            </p>
+          {result && result.relationships.length === 0 && <p className="callout neu-in small">{result.disclaimer}</p>}
+          {result && result.relationships.length > 0 && (
+            <>
+              {unconnected.length > 0 && (
+                <p className="muted small">
+                  No relationship was found in the sources checked for: {unconnected.map((n) => n.label).join(', ')}.
+                </p>
+              )}
+              <p className="disclaimer">
+                These links come from the sources checked, which are not complete. A missing link does not mean a
+                combination is safe. Talk with a pharmacist or healthcare professional if you have questions.
+              </p>
+            </>
           )}
-          {result && <p className="disclaimer">{result.disclaimer}</p>}
         </div>
       </div>
     </section>

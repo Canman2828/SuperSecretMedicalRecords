@@ -11,7 +11,7 @@ npm **workspaces** monorepo. Requires **Node 20+**. TypeScript everywhere.
 | Workspace | Path | Stack | What it is |
 |---|---|---|---|
 | `@medifyrx/mobile` | `apps/mobile` | Expo / React Native, expo-router | iOS app: live camera highlighter (on-device ML Kit OCR), tap-to-explain + TTS, basic profile |
-| `@medifyrx/web` | `apps/web` | Vite + React 19, React Flow, three.js | **medify.Rx** site: Compremedic (plain-language label reader + TTS), Prescriptive (profile editor, RxNorm autocomplete, interaction tree), Medictionary (`/api/explain`), sign-in |
+| `@medifyrx/web` | `apps/web` | Vite + React 19, React Flow, three.js | **medify.Rx** site: Compremedic (plain-language label reader + TTS), Prescriptive (profile editor, RxNorm autocomplete, interaction tree), Medictionary (`/api/chat` assistant), sign-in |
 | `@medifyrx/server` | `apps/server` | Express + MongoDB (Mongoose), JWT, Zod | REST API: RxNorm/openFDA lookups, interaction checks, explanations, accounts |
 | `@medifyrx/shared` | `packages/shared` | Plain TypeScript | Shared types, glossary, critical-field parser, API client — imported by all three |
 
@@ -40,7 +40,7 @@ cp apps/web/.env.example    apps/web/.env
 cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-- `apps/server/.env` — `PORT`, `MONGODB_URI` (**optional**; blank = guest mode, only login/save disabled), `JWT_SECRET` (set a long random string), `CORS_ORIGINS`, `AI_API_KEY` (optional, only for AI explanations).
+- `apps/server/.env` — `PORT`, `MONGODB_URI` (**optional**; blank = guest mode, only login/save disabled), `JWT_SECRET` (set a long random string), `CORS_ORIGINS`, `AI_API_KEY` (optional; a Google Gemini API key, needed for the chat assistant and AI explanations).
 - `apps/web/.env` — `VITE_API_URL` (default `http://localhost:4000`).
 - `apps/mobile/.env` — `EXPO_PUBLIC_API_URL` must be your computer's **LAN IP** (not `localhost`) so the iPhone can reach the API on the same Wi-Fi. Find it: `ipconfig getifaddr en0`.
 
@@ -53,13 +53,14 @@ GET    /api/health
 GET    /api/drugs/search?q=<name>       RxNorm → ingredient + RxCUI
 POST   /api/interactions/check          profile → nodes + sourced edges (guest OK)
 POST   /api/explain                     glossary first, AI last
+POST   /api/chat                        medication Q&A, streams SSE; stateless (guest OK, 503 without AI_API_KEY)
 POST   /api/auth/register | /login      → JWT
 GET    /api/profile                     (auth) saved profile
 PUT    /api/profile                     (auth) save — only after explicit opt-in
 DELETE /api/profile                     (auth) wipe saved health info
 ```
 
-Server layout: `routes/` (HTTP) → `services/` (`rxnorm.ts`, `openfda.ts`, `interactionResolver.ts`, `ai.ts`) → `models/` (Mongoose). `middleware/auth.ts` guards authed routes; `schemas.ts` + `middleware/validate.ts` do Zod validation.
+Server layout: `routes/` (HTTP) → `services/` (`rxnorm.ts`, `openfda.ts`, `interactionResolver.ts`, `ai.ts`, `chat.ts`) → `models/` (Mongoose). `middleware/auth.ts` guards authed routes; `schemas.ts` + `middleware/validate.ts` do Zod validation.
 
 ## How the mobile highlighter works
 
