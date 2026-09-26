@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "ClearRx",
+    "slug": "clearrx",
+    "scheme": "clearrx",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios"],
+    "ios": {
+      "bundleIdentifier": "com.clearrx.app",
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ClearRx uses the camera to highlight and explain medical terms on your prescription. Images are not saved."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+
+# Expo
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+*.ipa
+
+.DS_Store
