@@ -26,7 +26,7 @@ const demoAlex = (): Profile => ({
   foods: [{ id: newId('food'), name: 'Grapefruit', reason: 'regularly-consume' }],
 });
 
-type View_ = 'tree' | 'list' | '3d';
+type View_ = 'tree' | 'list';
 
 export default function PrescriptiveScreen() {
   const router = useRouter();
@@ -123,7 +123,6 @@ export default function PrescriptiveScreen() {
             options={[
               { v: 'tree', label: 'Tree', icon: 'tree' },
               { v: 'list', label: 'List', icon: 'menu' },
-              { v: '3d', label: '3D', icon: 'cube' },
             ]}
           />
         }
@@ -138,14 +137,7 @@ export default function PrescriptiveScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           <View style={styles.treeBox}>
-            {view === '3d' ? (
-              <Empty
-                icon="cube"
-                title="3D view"
-                text="Orbit, zoom and tap any branch to see why it is there. Coming in the next build."
-                action={<Btn label="Back to tree" variant="neu" height={40} onPress={() => setView('tree')} style={{ alignSelf: 'center' }} />}
-              />
-            ) : !result ? (
+            {!result ? (
               <Empty
                 icon="tree"
                 title={total === 0 ? 'Start with your profile' : 'Ready when you are'}
