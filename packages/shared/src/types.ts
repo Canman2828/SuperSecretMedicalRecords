@@ -168,9 +168,12 @@ export interface ExplainResponse {
 
 // ---------- "What it's used for" (openFDA indications) ----------
 
-/** Ask what one or more medications are used for. Names come from the OCR/profile. */
+/** Ask what one or more medications are used for. */
 export interface MedicationUsesRequest {
-  medications: string[];
+  /** Names already identified on the label. */
+  medications?: string[];
+  /** Scanned label text; the server finds the drug names printed in it (RxNorm). */
+  text?: string;
 }
 
 /**

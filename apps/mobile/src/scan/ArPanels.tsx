@@ -139,22 +139,23 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
   const [plain, setPlain] = useState<Plain>({ segments: glossaryPlain, source: 'glossary', loading: false });
   const language = LANGUAGES[lang];
 
-  // "What it's used for" — sourced from the official FDA label (openFDA), keyed off the
-  // medications OCR/the profile already identified. Independent of the plain-language rewrite.
-  const medsKey = useMemo(() => knownMedications.join('|'), [knownMedications]);
+  // "What it's used for" — sourced from the official FDA label (openFDA), for the drugs printed
+  // on THIS label. The server finds them in the scanned text; profile meds count only if they
+  // appear on the paper too (otherwise a scan would summarize whatever is saved in the profile).
   const [uses, setUses] = useState<MedicationUse[]>([]);
   useEffect(() => {
-    if (!knownMedications.length) return setUses([]);
+    if (!clean) return setUses([]);
+    const lower = clean.toLowerCase();
+    const onLabel = knownMedications.filter((m) => lower.includes(m.toLowerCase()));
     let live = true;
     api
-      .medicationUses({ medications: knownMedications })
+      .medicationUses({ medications: onLabel, text: clean })
       .then((r) => live && setUses(r.uses.filter((u) => u.usedFor)))
       .catch(() => live && setUses([]));
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [medsKey]);
+  }, [clean, knownMedications]);
 
   // AI rewrite; the glossary-only version shows until it arrives, and stays if AI is unavailable.
   useEffect(() => {
@@ -184,11 +185,19 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
     if (playing === which) return setPlaying(null);
     setPlaying(which);
     const done = () => setPlaying(null);
-    Speech.speak(which === 'orig' ? clean : spokenText(plain.segments), {
-      language: which === 'orig' || plain.source === 'glossary' ? 'en-US' : language.voice,
-      onDone: done,
-      onStopped: done,
+    // Own iOS audio session, so Listen still plays with the ring/silent switch on.
+    const base = { useApplicationAudioSession: false, onStopped: done };
+    if (which === 'orig') return Speech.speak(clean, { ...base, language: 'en-US', onDone: done });
+
+    // Plain words, then the "used for" summaries. Those are English, so they get an English voice
+    // even when the rewrite above them is translated. iOS queues the two utterances.
+    const usesText = spokenUses(uses);
+    Speech.speak(spokenText(plain.segments), {
+      ...base,
+      language: plain.source === 'glossary' ? 'en-US' : language.voice,
+      onDone: usesText ? undefined : done,
     });
+    if (usesText) Speech.speak(usesText, { ...base, language: 'en-US', onDone: done });
   };
 
   if (!clean) return null;
@@ -285,6 +294,12 @@ function Pane({
       </Pressable>
     </View>
   );
+}
+
+/** What Listen reads for the "What it's used for" block. */
+function spokenUses(uses: MedicationUse[]): string {
+  if (!uses.length) return '';
+  return `What it's used for. ${uses.map((u) => `${u.medication}: ${u.usedFor}.`).join(' ')}`;
 }
 
 /** Sourced "what it's used for" summaries, condensed from each drug's FDA label. */

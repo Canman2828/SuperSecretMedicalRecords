@@ -2,7 +2,7 @@ import { ApiError, GoogleGenAI } from '@google/genai';
 import type { MedicationUse } from '@medifyrx/shared';
 import { env } from '../env.js';
 import { getLabelByName } from './openfda.js';
-import { searchDrugs } from './rxnorm.js';
+import { findDrugNamesInText, searchDrugs } from './rxnorm.js';
 
 // "What is this medicine used for?" for the scanner's plain-language panel.
 //
@@ -27,7 +27,11 @@ const DOSE_OR_AGE = /\d\s*(mg|mcg|µg|ml|mL|g\b|kg|%|years?|yrs?|months?|weeks?|
 
 const cache = new Map<string, MedicationUse>();
 
-export async function medicationUses(names: string[]): Promise<MedicationUse[]> {
+export async function medicationUses(names: string[], scannedText?: string): Promise<MedicationUse[]> {
+  if (scannedText) {
+    const found = await findDrugNamesInText(scannedText).catch(() => []);
+    names = [...names, ...found];
+  }
   // De-dupe case-insensitively while keeping the first spelling the caller used.
   const seen = new Set<string>();
   const unique = names
