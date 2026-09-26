@@ -6,6 +6,10 @@ import type { Annotation, BBox } from '@medifyrx/shared';
 const ALPHA = 0.35; // weight of the new detection
 const KEEP_ALIVE_MS = 900;
 const MAX_CENTER_DIST = 80; // px, in screen space
+// Dead-zone: OCR boxes wobble a few px between passes even on a still label. Below these
+// thresholds we leave the highlight exactly where it is, so it stops constantly twitching.
+const STILL_DIST = 4; // px the center can drift before we move the box
+const STILL_SIZE = 6; // px total width+height change before we resize the box
 
 interface Tracked {
   ann: Annotation;
@@ -37,15 +41,22 @@ export class BoxTracker {
 
       if (best) {
         const prev = best.ann.bbox;
+        const pc = center(prev);
+        const moved = Math.hypot(pc.x - c.x, pc.y - c.y);
+        const resized = Math.abs(prev.width - det.bbox.width) + Math.abs(prev.height - det.bbox.height);
+        // Hold the box still inside the dead-zone; otherwise ease toward the new detection.
+        const settled = moved < STILL_DIST && resized < STILL_SIZE;
         best.ann = {
           ...det,
           id: best.ann.id, // stable id so React doesn't remount the highlight
-          bbox: {
-            x: lerp(prev.x, det.bbox.x),
-            y: lerp(prev.y, det.bbox.y),
-            width: lerp(prev.width, det.bbox.width),
-            height: lerp(prev.height, det.bbox.height),
-          },
+          bbox: settled
+            ? prev
+            : {
+                x: lerp(prev.x, det.bbox.x),
+                y: lerp(prev.y, det.bbox.y),
+                width: lerp(prev.width, det.bbox.width),
+                height: lerp(prev.height, det.bbox.height),
+              },
         };
         best.lastSeen = now;
         used.add(best);

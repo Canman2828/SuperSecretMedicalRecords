@@ -1,16 +1,17 @@
 import { LOW_CONFIDENCE, type Annotation, type AnnotationCategory } from '@medifyrx/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Icon, type IconName } from '../ui/Icon';
 
-// Color + icon, never color alone (accessibility).
-export const CATEGORY_STYLE: Record<AnnotationCategory, { color: string; icon: string; label: string }> = {
-  critical: { color: '#dc2626', icon: '🔒', label: 'Exact text' },
-  warning: { color: '#ea580c', icon: '⚠', label: 'Warning' },
-  medication: { color: '#736A86', icon: 'Rx', label: 'Medication' },
-  abbreviation: { color: '#2563eb', icon: 'Ab', label: 'Abbreviation' },
-  jargon: { color: '#7c3aed', icon: '?', label: 'Medical term' },
-  consent: { color: '#475569', icon: '§', label: 'Consent term' },
-  signature: { color: '#db2777', icon: '✍', label: 'Sign here' },
-  timing: { color: '#0284c7', icon: '🕒', label: 'When' },
+// Color + icon, never color alone (accessibility). Icons are the design-system SVG set, not emoji.
+export const CATEGORY_STYLE: Record<AnnotationCategory, { color: string; icon: IconName; label: string }> = {
+  critical: { color: '#dc2626', icon: 'lock', label: 'Exact text' },
+  warning: { color: '#ea580c', icon: 'alert', label: 'Warning' },
+  medication: { color: '#736A86', icon: 'pill', label: 'Medication' },
+  abbreviation: { color: '#2563eb', icon: 'type', label: 'Abbreviation' },
+  jargon: { color: '#7c3aed', icon: 'help', label: 'Medical term' },
+  consent: { color: '#475569', icon: 'file', label: 'Consent term' },
+  signature: { color: '#db2777', icon: 'edit', label: 'Sign here' },
+  timing: { color: '#0284c7', icon: 'pace', label: 'When' },
 };
 
 interface Props {
@@ -45,7 +46,7 @@ export function HighlightLayer({ annotations, onPress }: Props) {
             ]}
           >
             <View style={[styles.badge, { backgroundColor: s.color }]}>
-              <Text style={styles.badgeText}>{s.icon}</Text>
+              <Icon name={s.icon} size={11} color="#fff" />
             </View>
           </Pressable>
         );
@@ -60,12 +61,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     left: -10,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 });

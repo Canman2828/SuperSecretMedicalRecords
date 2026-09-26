@@ -5,7 +5,7 @@ import { api } from '../src/api';
 import { useAuth } from '../src/auth/AuthContext';
 import { Brand } from '../src/ui/Icon';
 import { Btn, Check, Field, IconBtn, Muted, Screen } from '../src/ui/kit';
-import { C, F, SH } from '../src/ui/theme';
+import { C, F } from '../src/ui/theme';
 
 // Mirrors apps/web/src/auth/SignInPage.tsx.
 
@@ -22,17 +22,17 @@ const TITLES: Record<Mode, string> = {
 const SUBMIT: Record<Mode, string> = {
   login: 'Sign In',
   register: 'Create account',
-  forgot: 'Set new password',
+  forgot: 'Reset password',
 };
 
 // The shared API client throws "<status> <statusText>: <body>".
 function friendlyError(m: string, mode: Mode): string {
   const code = m.slice(0, 3);
   if (code === '503') return 'Accounts are turned off on this server (no database). You can keep using medify.Rx as a guest.';
-  if (code === '429') return 'Too many attempts. Please wait a while and try again.';
   if (code === '401') return mode === 'forgot' ? 'That email and answer do not match.' : 'That email and password do not match.';
   if (code === '409') return 'An account with that email already exists. Try signing in.';
-  if (code === '400') return 'Please check your details and try again.';
+  if (code === '400') return 'Please check your email address and password.';
+  if (code === '429') return 'Too many wrong answers. Please wait 15 minutes and try again.';
   return 'Could not reach the server. Please try again.';
 }
 
@@ -45,8 +45,6 @@ export default function SignInScreen() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const needsAnswer = mode === 'register' || mode === 'forgot';
-
   const switchMode = (next: Mode) => {
     setMode(next);
     setMsg(null);
@@ -54,8 +52,13 @@ export default function SignInScreen() {
   };
 
   const submit = async () => {
+    const needsAnswer = mode !== 'login';
     if (!form.email || !form.password || (mode === 'register' && !form.name) || (needsAnswer && !form.securityAnswer.trim())) {
       setMsg('Please fill in every field.');
+      return;
+    }
+    if (mode !== 'login' && form.password.length < 8) {
+      setMsg('Please use at least 8 characters for your password.');
       return;
     }
     setBusy(true);
@@ -77,8 +80,6 @@ export default function SignInScreen() {
     }
   };
 
-  const soon = (what: string) => setMsg(`${what} is not available yet.`);
-
   const answerField = (
     <View>
       <Text style={styles.label}>{SECURITY_QUESTION}</Text>
@@ -92,6 +93,9 @@ export default function SignInScreen() {
         style={styles.input}
         accessibilityLabel={SECURITY_QUESTION}
       />
+      {mode === 'register' && (
+        <Muted small style={{ marginTop: 8 }}>You&apos;ll answer this if you ever forget your password. Capital letters don&apos;t matter.</Muted>
+      )}
     </View>
   );
 
@@ -149,16 +153,14 @@ export default function SignInScreen() {
 
         {mode === 'register' && answerField}
 
-        {mode !== 'forgot' && (
-          <View style={styles.row}>
-            <Check label="Remember me" value={remember} onChange={setRemember} />
-            {mode === 'login' && (
-              <Pressable accessibilityRole="button" onPress={() => switchMode('forgot')}>
-                <Text style={styles.textBtn}>Forgot password?</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
+        <View style={styles.row}>
+          <Check label="Remember me" value={remember} onChange={setRemember} />
+          {mode === 'login' && (
+            <Pressable accessibilityRole="button" onPress={() => switchMode('forgot')}>
+              <Text style={styles.textBtn}>Forgot password?</Text>
+            </Pressable>
+          )}
+        </View>
 
         <Btn label={busy ? 'One moment…' : SUBMIT[mode]} variant="ink" height={50} full disabled={busy} onPress={submit} />
         <Text style={styles.msg} accessibilityLiveRegion="polite">{msg ?? ''}</Text>
@@ -169,22 +171,12 @@ export default function SignInScreen() {
             <Text style={styles.textBtn} accessibilityRole="button" onPress={() => switchMode('login')}>Back to sign in</Text>
           </Text>
         ) : (
-          <>
-            <Text style={styles.or}>
-              {mode === 'login' ? 'New here? ' : 'Already have an account? '}
-              <Text style={styles.textBtn} accessibilityRole="button" onPress={() => switchMode(mode === 'login' ? 'register' : 'login')}>
-                {mode === 'login' ? 'Create an account' : 'Sign in'}
-              </Text>
+          <Text style={styles.or}>
+            {mode === 'login' ? 'New here? ' : 'Already have an account? '}
+            <Text style={styles.textBtn} accessibilityRole="button" onPress={() => switchMode(mode === 'login' ? 'register' : 'login')}>
+              {mode === 'login' ? 'Create an account' : 'Sign in'}
             </Text>
-            <Text style={styles.or}>or sign in with</Text>
-            <View style={styles.socials}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Sign in with Google" onPress={() => soon('Google sign-in')} style={({ pressed }) => [styles.social, pressed && { boxShadow: SH.inSm }]}>
-                <Text style={styles.g}>G</Text>
-              </Pressable>
-              <IconBtn icon="key" label="Sign in with a passkey" size={50} onPress={() => soon('Passkey sign-in')} color={C.ink} />
-              <IconBtn icon="mail" label="Sign in with an email link" size={50} onPress={() => soon('Email link sign-in')} color={C.ink} />
-            </View>
-          </>
+          </Text>
         )}
         <Muted small style={{ textAlign: 'center' }}>Your profile is only saved to your account when you choose to save it.</Muted>
       </View>
@@ -202,7 +194,4 @@ const styles = StyleSheet.create({
   textBtn: { fontFamily: F.body, fontSize: 15, color: C.dusk, textDecorationLine: 'underline' },
   msg: { textAlign: 'center', fontFamily: F.body, fontSize: 14, color: C.dusk, minHeight: 20 },
   or: { textAlign: 'center', fontFamily: F.body, fontSize: 17, color: C.ink3 },
-  socials: { flexDirection: 'row', justifyContent: 'center', gap: 18 },
-  social: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, boxShadow: SH.outSm },
-  g: { fontFamily: F.headBold, fontSize: 18, color: C.ink },
 });

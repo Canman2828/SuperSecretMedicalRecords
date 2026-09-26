@@ -55,9 +55,10 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]} accessibilityViewIsModal>
         <View style={styles.grab} />
-        <Text style={[styles.category, { color: s.color }]}>
-          {s.icon} {s.label}
-        </Text>
+        <View style={styles.categoryRow}>
+          <Icon name={s.icon} size={14} color={s.color} />
+          <Text style={[styles.category, { color: s.color }]}>{s.label}</Text>
+        </View>
 
         <Text style={styles.heading}>Original</Text>
         <View style={styles.original}>
@@ -118,6 +119,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(39,42,59,0.28)' },
   sheet: { backgroundColor: C.surface, paddingHorizontal: 22, paddingTop: 10, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, gap: 10, boxShadow: SH.outLg },
   grab: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: C.line, marginBottom: 6 },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   category: { fontFamily: F.headBold, fontSize: 12, letterSpacing: 1.2, textTransform: 'uppercase' },
   heading: { fontFamily: F.headBold, fontSize: 11, letterSpacing: 1.3, color: C.ink3, textTransform: 'uppercase', marginTop: 6 },
   original: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, paddingVertical: 12, paddingHorizontal: 14, borderRadius: R.md, boxShadow: SH.pane },

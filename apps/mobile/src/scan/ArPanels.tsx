@@ -96,9 +96,10 @@ function KeyDetails({ annotations, docBox, viewSize, insets, onSelect }: Props) 
           const s = CATEGORY_STYLE[category];
           return (
             <View key={category} style={styles.group}>
-              <Text style={[styles.groupTitle, { color: s.color }]}>
-                {s.icon} {KEY_TITLES[category]}
-              </Text>
+              <View style={styles.groupTitleRow}>
+                <Icon name={s.icon} size={12} color={s.color} />
+                <Text style={[styles.groupTitle, { color: s.color }]}>{KEY_TITLES[category]}</Text>
+              </View>
               {items.map((a) => (
                 <Pressable
                   key={a.id}
@@ -201,7 +202,7 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
 
   const note =
     plain.loading ? 'Summarizing…'
-    : plain.source === 'ai' ? '🔒 The important parts · doses kept exactly'
+    : plain.source === 'ai' ? 'The important parts · doses kept exactly'
     : 'Summary unavailable · showing full text';
 
   const origPanel = (
@@ -293,7 +294,10 @@ function spokenUses(uses: MedicationUse[]): string {
 function UsesBlock({ uses }: { uses: MedicationUse[] }) {
   return (
     <View style={styles.uses}>
-      <Text style={styles.usesTitle}>💊 What it's used for</Text>
+      <View style={styles.usesTitleRow}>
+        <Icon name="pill" size={12} color={C.dusk} />
+        <Text style={styles.usesTitle}>What it's used for</Text>
+      </View>
       {uses.map((u) => (
         <Text key={u.medication} style={styles.useLine}>
           <Text style={styles.useMed}>{u.medication}: </Text>
@@ -343,6 +347,7 @@ const styles = StyleSheet.create({
   pad: { padding: 12, gap: 8 },
   title: { fontFamily: F.headBold, fontSize: 12, color: C.ink, textTransform: 'uppercase', letterSpacing: 1 },
   group: { gap: 4 },
+  groupTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   groupTitle: { fontFamily: F.headBold, fontSize: 12 },
   item: { borderLeftWidth: 3, paddingLeft: 8, paddingVertical: 3 },
   itemText: { fontSize: 14, fontWeight: '600', color: '#111827', fontFamily: 'Menlo' },
@@ -359,6 +364,7 @@ const styles = StyleSheet.create({
   play: { flexDirection: 'row', justifyContent: 'center', gap: 6, backgroundColor: C.dusk, borderRadius: 999, paddingVertical: 9, alignItems: 'center' },
   playText: { color: C.white, fontFamily: F.head, fontSize: 13 },
   uses: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)', gap: 3 },
+  usesTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   usesTitle: { fontFamily: F.headBold, fontSize: 12, color: C.dusk },
   useLine: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: C.ink2 },
   useMed: { fontFamily: F.bodyBold, textTransform: 'capitalize' },
