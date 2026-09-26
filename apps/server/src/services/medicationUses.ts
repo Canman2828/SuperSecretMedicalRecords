@@ -152,7 +152,15 @@ async function callModel(labelText: string): Promise<string> {
       const res = await client.models.generateContent({
         model,
         contents: [{ role: 'user', parts: [{ text: `Label text:\n${labelText}` }] }],
-        config: { systemInstruction: CONDENSE_SYSTEM_PROMPT, maxOutputTokens: 64, temperature: 0.1 },
+        // thinkingBudget 0: gemini-flash is a thinking model, and with a tiny output budget the
+        // reasoning tokens would eat the whole allowance and leave the answer empty/truncated
+        // (e.g. "attention-"). This task needs no reasoning, so turn it off for a full, fast reply.
+        config: {
+          systemInstruction: CONDENSE_SYSTEM_PROMPT,
+          maxOutputTokens: 64,
+          temperature: 0.1,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
       return res.text ?? '';
     } catch (err) {
