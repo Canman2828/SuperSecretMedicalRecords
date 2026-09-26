@@ -1,19 +1,17 @@
-import {
-  newId,
-  type InteractionCheckResponse,
-  type Profile,
-  type Relationship,
-  type RelationshipStatus,
-} from '@medifyrx/shared';
-import { useEffect, useState } from 'react';
+import { newId, type InteractionCheckResponse, type Profile } from '@medifyrx/shared';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
-import { InteractionTree, STATUS_STYLE } from '../graph/InteractionTree';
-import { RelationshipDetails } from '../graph/RelationshipDetails';
 import { PageHead } from '../layout/Shell';
-import { DOT, ProfilePanel } from '../profile/ProfilePanel';
+import { ProfilePanel } from '../profile/ProfilePanel';
 import { Icon } from '../ui/Icon';
+import { PrescriptiveIntro } from './PrescriptiveIntro';
+import { NODE_COLOR, TONE } from './status';
+import { TreeViewer, type TreeViewerHandle } from './TreeViewer';
 
 export const EMPTY_PROFILE: Profile = { medications: [], allergies: [], foods: [] };
+
+const DISCLAIMER =
+  'Please note, Prescriptive is a tool to help you explore how food, medications, and supplements interact with one another. Consult your doctor or pharmacist for professional medical advice.';
 
 // Synthetic demo patient "Alex" from the design doc. Never use real patient data for judging.
 const demoAlex = (): Profile => ({
@@ -21,16 +19,13 @@ const demoAlex = (): Profile => ({
     { id: newId('med'), enteredName: 'Warfarin', normalizedName: 'Warfarin', rxCui: '11289', source: 'manual' },
     { id: newId('med'), enteredName: 'Aspirin', normalizedName: 'Aspirin', rxCui: '1191', source: 'manual' },
     { id: newId('med'), enteredName: 'Atorvastatin', normalizedName: 'Atorvastatin', rxCui: '83367', source: 'manual' },
+    { id: newId('med'), enteredName: 'Metformin', normalizedName: 'Metformin', rxCui: '6809', source: 'manual' },
   ],
   allergies: [{ id: newId('allergy'), substance: 'Penicillin', type: 'medication', reaction: 'Hives', source: 'user' }],
   foods: [{ id: newId('food'), name: 'Grapefruit', reason: 'regularly-consume' }],
 });
 
-type View = '2d' | '3d' | 'xr';
-const COMING: Record<Exclude<View, '2d'>, { icon: 'cube' | 'vr'; title: string; text: string }> = {
-  '3d': { icon: 'cube', title: '3D view', text: 'Orbit, zoom and tap any branch to see why it is there. Coming in the next build.' },
-  xr: { icon: 'vr', title: 'WebXR view', text: 'Put on a headset and walk around your tree at room scale. Coming in the next build.' },
-};
+const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 
 interface Props {
   profile: Profile;
@@ -40,36 +35,51 @@ interface Props {
 
 export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) {
   const [result, setResult] = useState<InteractionCheckResponse | null>(null);
-  const [selected, setSelected] = useState<Relationship | null>(null);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveOptIn, setSaveOptIn] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [view, setView] = useState<View>('2d');
+  const [introDone, setIntroDone] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const viewer = useRef<TreeViewerHandle>(null);
+  const disclaimerBtn = useRef<HTMLButtonElement>(null);
 
-  // Results are for a specific profile; clear them when it changes.
+  const total = profile.medications.length + profile.allergies.length + profile.foods.length;
+
+  // The tree updates by itself whenever the profile changes (debounced).
   useEffect(() => {
-    setResult(null);
-    setSelected(null);
-  }, [profile]);
-
-  const check = async () => {
-    setChecking(true);
-    setError(null);
-    try {
-      setResult(
-        await api.checkInteractions({
+    if (total === 0) {
+      setResult(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setChecking(true);
+      setError(null);
+      try {
+        const r = await api.checkInteractions({
           medications: profile.medications.map(({ enteredName, normalizedName, rxCui }) => ({ enteredName, normalizedName, rxCui })),
           allergies: profile.allergies.map(({ substance, type }) => ({ substance, type })),
           foods: profile.foods.map(({ name }) => ({ name })),
-        }),
-      );
-    } catch (e) {
-      setError(`Could not check relationships. ${(e as Error).message}`);
-    } finally {
-      setChecking(false);
-    }
-  };
+          includeRelated: true,
+        });
+        if (!cancelled) setResult(r);
+      } catch (e) {
+        if (!cancelled) setError(`Couldn’t check your profile right now. ${(e as Error).message}`);
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [profile, total]);
+
+  useEffect(() => {
+    if (showDisclaimer) disclaimerBtn.current?.focus();
+  }, [showDisclaimer]);
 
   const save = async () => {
     try {
@@ -80,129 +90,95 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
     }
   };
 
-  // Every profile item with no documented relationship. "Not found" is reported as exactly that, never as "safe".
-  const unconnected = result
+  const mineWithNoLinks = result
     ? result.nodes.filter(
         (n) =>
           n.type !== 'patient' &&
+          !n.related &&
           !result.relationships.some((r) => r.sourceNodeId === n.id || r.targetNodeId === n.id),
       )
     : [];
 
-  const total = profile.medications.length + profile.allergies.length + profile.foods.length;
-
   return (
     <section className="page acc-blush">
       <PageHead icon="tree" goal="Awareness" title="Prescriptive">
-        Keep your medicines, allergies and foods in one profile, then see a tree of what to watch out for. Every link
-        comes from a real drug label you can open.
+        Explore how your medicines, allergies and foods interact, in 3D or on the table in front of you. Red cables
+        mean never combine, yellow means avoid, and green means often paired. Every link comes from a real drug label.
       </PageHead>
 
-      <div className="grid-side">
-        <div className="stack">
-          <div className="panel card">
-            <div className="panel-head">
-              <h3>Your profile</h3>
-              <div className="btn-row">
-                <button className="chip" onClick={() => onProfileChange(demoAlex())}>Load demo patient</button>
-                <button className="chip" onClick={() => onProfileChange(EMPTY_PROFILE)} disabled={total === 0}>Clear</button>
-              </div>
-            </div>
-            {loggedIn ? (
-              <div className="save-row">
-                <label className="check" htmlFor="saveOptIn">
-                  <input type="checkbox" id="saveOptIn" checked={saveOptIn} onChange={(e) => setSaveOptIn(e.target.checked)} />
-                  <span className="box"><Icon name="check" /></span>
-                  Save this profile to my account
-                </label>
-                <button className="btn btn-neu" style={{ height: 40 }} disabled={!saveOptIn} onClick={save}>Save</button>
-              </div>
-            ) : (
-              <p className="muted small">
-                Guest mode: nothing is saved. <a href="#signin">Sign in</a> to keep your profile.
-              </p>
-            )}
-            {status && <p className="small status" aria-live="polite">{status}</p>}
-          </div>
-          <ProfilePanel profile={profile} onChange={onProfileChange} />
+      <div className="panel card tree-panel">
+        <TreeViewer ref={viewer} data={result} loading={checking} startHidden={!introDone} />
+        {error && <p className="error small">{error}</p>}
+        <div className="legend">
+          <span><i style={{ background: hex(TONE.never.cable) }} />{TONE.never.label}</span>
+          <span><i style={{ background: hex(TONE.avoid.cable) }} />{TONE.avoid.label}</span>
+          <span><i style={{ background: hex(TONE.pair.cable) }} />{TONE.pair.label}</span>
+          <span className="legend-sep" />
+          <span><Icon name="pill" size={15} style={{ color: hex(NODE_COLOR.medication) }} />Medicine</span>
+          <span><Icon name="food" size={15} style={{ color: hex(NODE_COLOR.food) }} />Food</span>
+          <span><Icon name="shield" size={15} style={{ color: hex(NODE_COLOR.allergy) }} />Allergy</span>
+          <span><Icon name="star" size={15} style={{ color: hex(NODE_COLOR.other) }} />Other substance</span>
         </div>
-
-        <div className="panel card tree-panel">
-          <div className="panel-head">
-            <h3>Your interaction tree</h3>
-            <div className="seg" role="group" aria-label="View mode">
-              <button aria-pressed={view === '2d'} onClick={() => setView('2d')}><Icon name="tree" size={15} />Tree</button>
-              <button aria-pressed={view === '3d'} onClick={() => setView('3d')}><Icon name="cube" size={15} />3D</button>
-              <button aria-pressed={view === 'xr'} onClick={() => setView('xr')}><Icon name="vr" size={15} />WebXR</button>
-            </div>
-          </div>
-
-          <div className="check-row">
-            <button className="btn btn-jelly" onClick={check} disabled={checking || total === 0}>
-              {checking ? 'Checking…' : result ? 'Check again' : 'Check relationships'}
-              <Icon name="arrow-right" />
-            </button>
-            {error && <p className="error small">{error}</p>}
-          </div>
-
-          <div className="tree-box">
-            {result ? (
-              <InteractionTree result={result} onSelectRelationship={setSelected} />
-            ) : (
-              <div className="tree-empty">
-                <div>
-                  <span className="icon-btn"><Icon name="tree" /></span>
-                  <strong>{total === 0 ? 'Start with your profile' : 'Ready when you are'}</strong>
-                  <p className="small muted">
-                    {total === 0
-                      ? 'Add a medicine, allergy or food on the left, or load the demo patient.'
-                      : 'Check relationships to build your tree. Tap any colored link to see where it comes from.'}
-                  </p>
-                </div>
-              </div>
-            )}
-            {selected && result && (
-              <RelationshipDetails relationship={selected} nodes={result.nodes} onClose={() => setSelected(null)} />
-            )}
-            {view !== '2d' && (
-              <div className="tree-overlay">
-                <div>
-                  <span className="icon-btn"><Icon name={COMING[view].icon} /></span>
-                  <strong style={{ fontFamily: 'var(--f-head)', fontSize: 18 }}>{COMING[view].title}</strong>
-                  <p className="small muted">{COMING[view].text}</p>
-                  <button className="btn btn-neu" style={{ height: 40 }} onClick={() => setView('2d')}>Back to tree</button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="legend">
-            <span><i style={{ background: DOT.medication }} />Medicine</span>
-            <span><i style={{ background: DOT.allergy }} />Allergy</span>
-            <span><i style={{ background: DOT.food }} />Food</span>
-            {(Object.keys(STATUS_STYLE) as RelationshipStatus[]).map((k) => (
-              <span key={k} style={{ color: STATUS_STYLE[k].color }}>
-                <b aria-hidden="true">{STATUS_STYLE[k].icon}</b>{STATUS_STYLE[k].label}
-              </span>
-            ))}
-          </div>
-
-          {result && result.relationships.length === 0 && <p className="callout neu-in small">{result.disclaimer}</p>}
-          {result && result.relationships.length > 0 && (
-            <>
-              {unconnected.length > 0 && (
-                <p className="muted small">
-                  No relationship was found in the sources checked for: {unconnected.map((n) => n.label).join(', ')}.
-                </p>
-              )}
-              <p className="disclaimer">
-                These links come from the sources checked, which are not complete. A missing link does not mean a
-                combination is safe. Talk with a pharmacist or healthcare professional if you have questions.
-              </p>
-            </>
-          )}
-        </div>
+        {mineWithNoLinks.length > 0 && (
+          <p className="muted small">
+            No relationships found in the sources checked for: {mineWithNoLinks.map((n) => n.label).join(', ')}.
+          </p>
+        )}
+        {result && <p className="disclaimer">{result.disclaimer}</p>}
       </div>
+
+      <div className="profile-grid">
+        <div className="panel card">
+          <div className="panel-head">
+            <h3>Your profile</h3>
+            <div className="btn-row">
+              <button className="chip" onClick={() => onProfileChange(demoAlex())}>Load demo patient</button>
+              <button className="chip" onClick={() => onProfileChange(EMPTY_PROFILE)} disabled={total === 0}>Clear</button>
+            </div>
+          </div>
+          <p className="muted small" style={{ marginBottom: 12 }}>
+            Add what you take, what you’re allergic to and foods you eat often. The tree above updates as you go.
+          </p>
+          {loggedIn ? (
+            <div className="save-row">
+              <label className="check" htmlFor="saveOptIn">
+                <input type="checkbox" id="saveOptIn" checked={saveOptIn} onChange={(e) => setSaveOptIn(e.target.checked)} />
+                <span className="box"><Icon name="check" /></span>
+                Save this profile to my account
+              </label>
+              <button className="btn btn-neu" style={{ height: 40 }} disabled={!saveOptIn} onClick={save}>Save</button>
+            </div>
+          ) : (
+            <p className="muted small">
+              Guest mode: nothing is saved. <a href="#signin">Sign in</a> to keep your profile.
+            </p>
+          )}
+          {status && <p className="small status" aria-live="polite">{status}</p>}
+        </div>
+        <ProfilePanel profile={profile} onChange={onProfileChange} />
+      </div>
+
+      {!introDone && (
+        <PrescriptiveIntro
+          getTarget={() => viewer.current?.centerPillRect() ?? null}
+          onHandoff={(ms) => (ms ? viewer.current?.revealCenter(ms) : viewer.current?.revealAll())}
+          onDone={() => {
+            setIntroDone(true);
+            setShowDisclaimer(true);
+          }}
+        />
+      )}
+
+      {showDisclaimer && (
+        <div className="modal-backdrop" role="presentation" onKeyDown={(e) => e.key === 'Escape' && setShowDisclaimer(false)}>
+          <div className="modal card" role="alertdialog" aria-modal="true" aria-labelledby="disc-title" aria-describedby="disc-text">
+            <span className="icon-btn modal-icon"><Icon name="shield" /></span>
+            <h2 id="disc-title">Before you explore</h2>
+            <p id="disc-text">{DISCLAIMER}</p>
+            <button ref={disclaimerBtn} className="btn btn-jelly" onClick={() => setShowDisclaimer(false)}>I understand</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

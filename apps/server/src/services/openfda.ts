@@ -14,6 +14,9 @@ export interface LabelSections {
   boxedWarning?: string[];
   /** What the drug is indicated to treat — the "used for" source. OTC labels use `purpose` instead. */
   indicationsAndUsage?: string[];
+  /** Patient counseling / patient leaflet text (often where food and alcohol advice lives). */
+  informationForPatients?: string[];
+  dosageAndAdministration?: string[];
   dailyMedUrl?: string;
 }
 
@@ -33,16 +36,17 @@ export async function getLabelByName(name: string): Promise<LabelSections | null
   if (!q) return null;
   const enc = encodeURIComponent(`"${q}"`);
   return (
-    (await getLabel(`name:${q}:generic`, `openfda.generic_name:${enc}`)) ??
-    (await getLabel(`name:${q}:substance`, `openfda.substance_name:${enc}`))
+    (await getLabel(`name:${q}:generic`, `openfda.generic_name:${enc}`, q)) ??
+    (await getLabel(`name:${q}:substance`, `openfda.substance_name:${enc}`, q))
   );
 }
 
 /** Fetch the first matching label for an openFDA `search` expression, parsed into the sections we use. */
-async function getLabel(cacheKey: string, search: string): Promise<LabelSections | null> {
+async function getLabel(cacheKey: string, search: string, preferName?: string): Promise<LabelSections | null> {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
 
-  const url = `${BASE}?search=${search}&limit=1`;
+  // Several products share a name (e.g. ciprofloxacin tablets vs eye drops); prefer a by-mouth label.
+  const url = `${BASE}?search=${search}&limit=5`;
   const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
   if (res.status === 404) {
     cache.set(cacheKey, null);
@@ -51,7 +55,16 @@ async function getLabel(cacheKey: string, search: string): Promise<LabelSections
   if (!res.ok) throw new Error(`openFDA ${res.status}`);
 
   const data = (await res.json()) as { results?: Record<string, any>[] };
-  const r = data.results?.[0];
+  // Best match: the single-ingredient product with exactly this name (not a combination pill), by mouth.
+  const want = preferName?.toLowerCase();
+  // "METFORMIN HYDROCHLORIDE" counts as metformin; "SITAGLIPTIN AND METFORMIN ..." does not.
+  const single = (g: string) => {
+    const n = g.toLowerCase();
+    return !!want && (n === want || n.startsWith(`${want} `)) && !/ and |,|\//.test(n);
+  };
+  const score = (x: Record<string, any>) =>
+    (x.openfda?.generic_name?.some(single) ? 2 : 0) + (x.openfda?.route?.includes('ORAL') ? 1 : 0);
+  const r = data.results?.reduce<Record<string, any> | undefined>((best, x) => (!best || score(x) > score(best) ? x : best), undefined);
   if (!r) {
     cache.set(cacheKey, null);
     return null;
@@ -65,6 +78,8 @@ async function getLabel(cacheKey: string, search: string): Promise<LabelSections
     warnings: r.warnings ?? r.warnings_and_cautions,
     boxedWarning: r.boxed_warning,
     indicationsAndUsage: r.indications_and_usage ?? r.purpose,
+    informationForPatients: r.information_for_patients ?? r.patient_medication_information ?? r.spl_patient_package_insert,
+    dosageAndAdministration: r.dosage_and_administration,
     dailyMedUrl: setId ? `https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=${setId}` : undefined,
   };
   cache.set(cacheKey, label);

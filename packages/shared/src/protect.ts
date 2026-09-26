@@ -46,7 +46,7 @@ export function maskProtected(text: string, knownMedications: string[] = []): Ma
     const span = tokens.slice(i, a.end);
     const joined = span.map((t, j) => t.text + (j < span.length - 1 ? t.space : '')).join('');
     // Keep sentence punctuation outside the lock: "DAYS." locks "DAYS".
-    const [, core, tail] = joined.match(/^(.*?)([.,;:!?)]*)$/)!;
+    const [, core, tail] = joined.match(/^(.*?)([.,;:!?)]*)$/s)!;
     locks.push({ text: core, meaning: a.meaning });
     masked += placeholder(locks.length) + tail + span[span.length - 1].space;
     i = a.end;

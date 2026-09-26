@@ -12,6 +12,7 @@ const STATUS = {
   warning: { icon: '!', color: '#b45309' },
   contraindication: { icon: '⊘', color: '#b91c1c' },
   'possible-allergy-match': { icon: '△', color: '#7c3aed' },
+  complementary: { icon: '✓', color: '#3E7A57' },
 } as const;
 
 export default function ProfileScreen() {

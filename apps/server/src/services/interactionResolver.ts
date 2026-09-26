@@ -6,6 +6,7 @@ import {
   type Relationship,
 } from '@medifyrx/shared';
 import { DEMO_RELATIONSHIPS, type DemoRelationship } from '../data/demoRelationships.js';
+import { foodsToAvoid, matchesFood } from './labelFoods.js';
 
 type Matchable = { id: string; names: string[]; rxCui?: string };
 
@@ -18,6 +19,8 @@ function matches(side: DemoRelationship['a'], item: Matchable) {
 
 /**
  * Builds the tree: patient -> each item, plus sourced edges between items.
+ * With `includeRelated`, rules whose other side isn't in the profile add a `related` node
+ * (e.g. warfarin -> "Ibuprofen & other NSAIDs") so the web tree can show what to avoid or pair.
  * The frontend never decides relationships; it just renders this.
  *
  * Right now this uses only the curated demo list (phase 5).
@@ -54,28 +57,93 @@ export async function resolveProfileRelationships(
 
   const relationships: Relationship[] = [];
   const seen = new Set<string>();
+  const relatedIds = new Set<string>();
+
+  const addEdge = (rel: DemoRelationship, aId: string, bId: string) => {
+    const key = [aId, bId].sort().join('|');
+    if (seen.has(key)) return;
+    seen.add(key);
+    relationships.push({
+      id: `rel-${relationships.length + 1}`,
+      sourceNodeId: aId,
+      targetNodeId: bId,
+      type: rel.type,
+      status: rel.status,
+      title: rel.title,
+      explanation: rel.explanation,
+      source: rel.source,
+      sourceText: rel.sourceText,
+      checkedAt,
+    });
+  };
 
   for (const rel of DEMO_RELATIONSHIPS) {
-    const targets = rel.bKind === 'medication' ? meds : rel.bKind === 'food' ? foods : allergies;
-    for (const a of meds) {
+    const sources = rel.aKind === 'allergy' ? allergies : meds;
+    // "Other" substances (alcohol, salt substitutes, vitamins) are usually entered as foods.
+    const targets = rel.bKind === 'medication' ? meds : rel.bKind === 'allergy' ? allergies : foods;
+    for (const a of sources) {
       if (!matches(rel.a, a)) continue;
-      for (const b of targets) {
-        if (a.id === b.id || !matches(rel.b, b)) continue;
-        const key = [a.id, b.id].sort().join('|');
-        if (seen.has(key)) continue;
-        seen.add(key);
-        relationships.push({
-          id: `rel-${relationships.length + 1}`,
-          sourceNodeId: a.id,
-          targetNodeId: b.id,
-          type: rel.type,
-          status: rel.status,
-          title: rel.title,
-          explanation: rel.explanation,
-          source: rel.source,
-          sourceText: rel.sourceText,
-          checkedAt,
-        });
+      const inProfile = targets.filter((b) => a.id !== b.id && matches(rel.b, b));
+      for (const b of inProfile) addEdge(rel, a.id, b.id);
+
+      // Web tree: also show what to avoid / pair even though it isn't in the profile.
+      if (!inProfile.length && profile.includeRelated && rel.bKind !== 'allergy' && rel.bLabel) {
+        const id = `related-${rel.bKind}-${slug(rel.bLabel)}`;
+        if (!relatedIds.has(id)) {
+          relatedIds.add(id);
+          nodes.push({ id, type: rel.bKind, label: rel.bLabel, related: true });
+        }
+        addEdge(rel, a.id, id);
+      }
+    }
+  }
+
+  // Web tree: foods and drinks each medication's FDA label says to avoid (see labelFoods.ts).
+  // Curated rules above win for any pair they already cover. Lookups are cached per medication.
+  if (profile.includeRelated) {
+    const found = await Promise.all(
+      profile.medications.map((m, i) =>
+        foodsToAvoid({ name: m.normalizedName ?? m.enteredName, rxCui: m.rxCui })
+          .catch(() => [])
+          .then((hits) => ({ med: meds[i], display: m.normalizedName ?? m.enteredName, hits })),
+      ),
+    );
+    for (const { med, display, hits } of found) {
+      for (const hit of hits) {
+        // Connect to the user's own food node if they entered it, otherwise add a related node.
+        const own = foods.find((f) => f.names.some((n) => matchesFood(hit, n)));
+        let targetId = own?.id;
+        if (!targetId) {
+          targetId = `related-${hit.kind}-${slug(hit.label)}`;
+          if (!relatedIds.has(targetId)) {
+            relatedIds.add(targetId);
+            nodes.push({ id: targetId, type: hit.kind, label: hit.label, related: true });
+          }
+        }
+        // The label's own "avoid" sentence is the strongest source: it replaces a hand-written food rule.
+        const key = [med.id, targetId].sort().join('|');
+        if (seen.has(key)) {
+          const i = relationships.findIndex((r) => [r.sourceNodeId, r.targetNodeId].sort().join('|') === key);
+          if (i >= 0 && relationships[i].type === 'drug-food') {
+            relationships.splice(i, 1);
+            seen.delete(key);
+          }
+        }
+        addEdge(
+          {
+            a: { names: [], rxCuis: [] },
+            b: { names: [], rxCuis: [] },
+            bKind: hit.kind,
+            type: 'drug-food',
+            status: 'contraindication',
+            title: 'The label says to avoid this',
+            explanation: `The ${display} drug label tells people taking it to avoid ${hit.label.toLowerCase()}. Here is the exact sentence:`,
+            source: { organization: 'FDA', label: `${display} drug label (via openFDA)`, url: hit.sourceUrl },
+            sourceText: hit.sentence,
+          },
+          med.id,
+          targetId,
+        );
       }
     }
   }

@@ -6,7 +6,7 @@ Hackathon monorepo: an **iOS app** (live prescription highlighter + profile), a 
 medifyrx/
 ├── apps/
 │   ├── mobile/    Expo (React Native) iOS app — camera, on-device OCR, live highlights, TTS
-│   ├── web/       Vite + React — profile editor, RxNorm autocomplete, React Flow interaction tree
+│   ├── web/       Vite + React — profile editor, RxNorm autocomplete, 3D / WebXR interaction tree (three.js)
 │   └── server/    Express + MongoDB — RxNorm, openFDA, interactions, explanations, accounts
 └── packages/
     └── shared/    Types, glossary, critical-field parser, API client (used by all three)
@@ -65,7 +65,7 @@ Your phone and computer need to be on the same Wi-Fi, and `EXPO_PUBLIC_API_URL` 
 | Tap term → explanation + TTS | ✅ | | `/api/explain` for glossary misses |
 | Add scanned med to profile | ✅ | | |
 | Profile editor | basic | ✅ full (RxNorm autocomplete) | |
-| Interaction tree | cards | ✅ React Flow tree | `/api/interactions/check` |
+| Interaction tree | cards | ✅ 3D / camera / WebXR tree | `/api/interactions/check` |
 | Accounts / save profile | — | ✅ | `/api/auth`, `/api/profile` |
 
 ## How the highlighter works
