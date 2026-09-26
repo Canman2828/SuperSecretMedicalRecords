@@ -143,6 +143,8 @@ export interface TranslateRequest {
   language?: string;
   /** Extra medication names to protect (e.g. from the profile). */
   knownMedications?: string[];
+  /** 'summary' keeps only the medical instructions; 'faithful' (default) rewrites everything. */
+  mode?: 'faithful' | 'summary';
 }
 
 /** A run of text. `lock` = copied exactly from the original, never reworded or translated. */

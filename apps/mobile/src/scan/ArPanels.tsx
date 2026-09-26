@@ -24,14 +24,6 @@ const KEY_TITLES: Partial<Record<AnnotationCategory, string>> = {
 };
 const PER_GROUP = 3;
 
-const LANGUAGES = [
-  { label: 'English', name: 'plain English', voice: 'en-US' },
-  { label: 'Español', name: 'Spanish', voice: 'es-US' },
-  { label: '中文', name: 'Simplified Chinese', voice: 'zh-CN' },
-  { label: 'Tiếng Việt', name: 'Vietnamese', voice: 'vi-VN' },
-  { label: 'Tagalog', name: 'Tagalog', voice: 'fil-PH' },
-];
-
 interface Props {
   annotations: Annotation[];
   docBox: BBox | null;
@@ -131,13 +123,11 @@ function KeyDetails({ annotations, docBox, viewSize, insets, onSelect }: Props) 
 type Plain = { segments: Segment[]; source: 'ai' | 'glossary'; loading: boolean };
 
 function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props) {
-  const [lang, setLang] = useState(0);
   const [playing, setPlaying] = useState<'orig' | 'plain' | null>(null);
   const clean = useMemo(() => text.replace(/\s+/g, ' ').trim(), [text]);
   const original = useMemo(() => originalSegments(clean, knownMedications), [clean, knownMedications]);
   const glossaryPlain = useMemo(() => plainSegments(clean, knownMedications), [clean, knownMedications]);
   const [plain, setPlain] = useState<Plain>({ segments: glossaryPlain, source: 'glossary', loading: false });
-  const language = LANGUAGES[lang];
 
   // "What it's used for" — sourced from the official FDA label (openFDA), for the drugs printed
   // on THIS label. The server finds them in the scanned text; profile meds count only if they
@@ -157,13 +147,14 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
     };
   }, [clean, knownMedications]);
 
-  // AI rewrite; the glossary-only version shows until it arrives, and stays if AI is unavailable.
+  // Plain-English summary of the important parts (dose, how, when, warnings); the glossary-only
+  // version of the full text shows until it arrives, and stays if the AI summary is unavailable.
   useEffect(() => {
     if (!clean) return;
     let live = true;
     setPlain({ segments: glossaryPlain, source: 'glossary', loading: true });
     api
-      .translate({ text: clean, language: language.name, knownMedications })
+      .translate({ text: clean, knownMedications, mode: 'summary' })
       .then((r) => {
         if (!live) return;
         setPlain(
@@ -176,7 +167,7 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
     return () => {
       live = false;
     };
-  }, [clean, glossaryPlain, language.name, knownMedications]);
+  }, [clean, glossaryPlain, knownMedications]);
 
   useEffect(() => () => void Speech.stop(), []);
 
@@ -189,12 +180,11 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
     const base = { useApplicationAudioSession: false, onStopped: done };
     if (which === 'orig') return Speech.speak(clean, { ...base, language: 'en-US', onDone: done });
 
-    // Plain words, then the "used for" summaries. Those are English, so they get an English voice
-    // even when the rewrite above them is translated. iOS queues the two utterances.
+    // Plain-words summary, then the "used for" lines. iOS queues the two utterances.
     const usesText = spokenUses(uses);
     Speech.speak(spokenText(plain.segments), {
       ...base,
-      language: plain.source === 'glossary' ? 'en-US' : language.voice,
+      language: 'en-US',
       onDone: usesText ? undefined : done,
     });
     if (usesText) Speech.speak(usesText, { ...base, language: 'en-US', onDone: done });
@@ -208,10 +198,9 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
   const flank = docBox && roomLeft >= SIDE_MIN && roomRight >= SIDE_MIN;
 
   const note =
-    plain.loading ? 'Rewriting…'
-    : plain.source === 'ai' ? '🔒 values copied exactly'
-    : lang === 0 ? 'Glossary version'
-    : 'Translation unavailable, showing English';
+    plain.loading ? 'Summarizing…'
+    : plain.source === 'ai' ? '🔒 The important parts · doses kept exactly'
+    : 'Summary unavailable · showing full text';
 
   const origPanel = (
     <Pane title="Original" onPlay={() => toggle('orig')} playing={playing === 'orig'}>
@@ -224,11 +213,6 @@ function SideBySide({ docBox, viewSize, insets, text, knownMedications }: Props)
       note={note}
       onPlay={() => toggle('plain')}
       playing={playing === 'plain'}
-      action={
-        <Pressable style={styles.lang} onPress={() => setLang((l) => (l + 1) % LANGUAGES.length)}>
-          <Text style={styles.langText}>🌐 {language.label}</Text>
-        </Pressable>
-      }
       extra={uses.length ? <UsesBlock uses={uses} /> : null}
     >
       <SegmentText segments={plain.segments} />
@@ -369,8 +353,6 @@ const styles = StyleSheet.create({
   lock: { backgroundColor: '#fef3c7', color: '#92400e', fontWeight: '700' },
   term: { color: '#0d9488', fontWeight: '700', textDecorationLine: 'underline' },
   meaning: { color: '#0d9488', fontStyle: 'italic' },
-  lang: { borderRadius: 99, paddingVertical: 3, paddingHorizontal: 8, backgroundColor: 'rgba(13,148,136,0.12)' },
-  langText: { fontSize: 11, fontWeight: '700', color: '#0d9488' },
   play: { backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
   playText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   uses: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)', gap: 3 },

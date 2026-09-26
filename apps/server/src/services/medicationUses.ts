@@ -1,7 +1,7 @@
 import { ApiError, GoogleGenAI } from '@google/genai';
 import type { MedicationUse } from '@medifyrx/shared';
 import { env } from '../env.js';
-import { getLabelByName } from './openfda.js';
+import { getLabelByName, type LabelSections } from './openfda.js';
 import { findDrugNamesInText, searchDrugs } from './rxnorm.js';
 
 // "What is this medicine used for?" for the scanner's plain-language panel.
@@ -25,55 +25,67 @@ Never write a dose, strength, age, or any measurement. If the text does not clea
 // A dose/age/measurement: a number next to a unit. Condition names like "type 2 diabetes" are fine.
 const DOSE_OR_AGE = /\d\s*(mg|mcg|µg|ml|mL|g\b|kg|%|years?|yrs?|months?|weeks?|days?|hours?|hrs?|times?)/i;
 
-const cache = new Map<string, MedicationUse>();
+// Cache the finished "used for" line per label (keyed by DailyMed set id), so repeated scans and
+// OCR variants of the same drug reuse one answer. Only stable answers are cached (see below).
+const useCache = new Map<string, string>();
 
 export async function medicationUses(names: string[], scannedText?: string): Promise<MedicationUse[]> {
   if (scannedText) {
     const found = await findDrugNamesInText(scannedText).catch(() => []);
     names = [...names, ...found];
   }
-  // De-dupe case-insensitively while keeping the first spelling the caller used.
-  const seen = new Set<string>();
-  const unique = names
+  // De-dupe the input spellings case-insensitively first.
+  const seenName = new Set<string>();
+  const uniqueNames = names
     .map((n) => n.trim())
-    .filter((n) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()));
+    .filter((n) => n && !seenName.has(n.toLowerCase()) && seenName.add(n.toLowerCase()));
 
-  return Promise.all(unique.map((name) => oneMedicationUse(name)));
+  // Resolve each spelling to its official label, then collapse by label identity so "atomoxetine",
+  // "Strattera" and an OCR garble like "Atoncy" become ONE entry (and one AI call) instead of three.
+  const resolved = await Promise.all(uniqueNames.map((n) => resolveLabel(n).catch(() => null)));
+
+  const byLabel = new Map<string, { display: string; label: LabelSections }>();
+  const noLabel: MedicationUse[] = [];
+  for (const r of resolved) {
+    if (!r) continue;
+    if (!r.label?.setId) {
+      // Couldn't find a label: keep it as a (null) entry, de-duped by display name.
+      if (!noLabel.some((u) => u.medication.toLowerCase() === r.display.toLowerCase())) {
+        noLabel.push({ medication: r.display, usedFor: null, sourceUrl: r.label?.dailyMedUrl });
+      }
+      continue;
+    }
+    if (!byLabel.has(r.label.setId)) byLabel.set(r.label.setId, { display: r.display, label: r.label });
+  }
+
+  const summarized = await Promise.all(
+    [...byLabel.values()].map(({ display, label }) => usedForLabel(display, label)),
+  );
+  return [...summarized, ...noLabel];
 }
 
-async function oneMedicationUse(medication: string): Promise<MedicationUse> {
-  const key = medication.toLowerCase();
-  const hit = cache.get(key);
-  if (hit) return hit;
-
-  // `cacheable` guards against poisoning: a stable answer (a summary, or a real "no label")
-  // is cached forever, but a transient miss (AI condense timed out on text we DID find) is
-  // left uncached so the next scan can retry instead of showing null for the server's lifetime.
-  const { cacheable, ...use } = await resolveUse(medication).catch(() => ({
-    medication,
-    usedFor: null,
-    cacheable: false as const,
-  }));
-  if (cacheable) cache.set(key, use);
-  return use;
-}
-
-type Resolved = MedicationUse & { cacheable: boolean };
-
-async function resolveUse(medication: string): Promise<Resolved> {
-  // Normalize the spelling to a canonical ingredient (RxNorm), then find that ingredient's
-  // official label by name (openFDA). Fall back to the raw OCR/entered name if RxNorm misses.
+/** Normalize a spelling to a canonical ingredient (RxNorm), then fetch that ingredient's label (openFDA). */
+async function resolveLabel(medication: string): Promise<{ display: string; label: LabelSections | null }> {
   const [match] = await searchDrugs(medication, 1);
-  const lookupName = match?.name ?? medication;
+  const display = match?.name ?? medication;
+  const label = await getLabelByName(display);
+  return { display, label };
+}
 
-  const label = await getLabelByName(lookupName);
-  const raw = cleanSection(label?.indicationsAndUsage);
-  // No label / no indications section: a stable null, safe to cache.
-  if (!raw) return { medication, usedFor: null, sourceUrl: label?.dailyMedUrl, cacheable: true };
+/** Condense one label's indications into a "used for" line, caching only stable answers. */
+async function usedForLabel(display: string, label: LabelSections): Promise<MedicationUse> {
+  const base = { medication: display, sourceUrl: label.dailyMedUrl };
+  const cached = label.setId ? useCache.get(label.setId) : undefined;
+  if (cached) return { ...base, usedFor: cached };
 
-  const usedFor = (await condense(raw).catch(() => null)) ?? heuristic(raw, lookupName);
-  // We had label text: caching a null here would freeze in a transient AI timeout — only cache a hit.
-  return { medication, usedFor, sourceUrl: label?.dailyMedUrl, cacheable: usedFor !== null };
+  const raw = cleanSection(label.indicationsAndUsage);
+  if (!raw) return { ...base, usedFor: null };
+
+  const usedFor = (await condense(raw).catch(() => null)) ?? heuristic(raw, display);
+  // Only cache a real hit: caching a null would freeze in a transient AI timeout/quota error and
+  // never retry. A miss stays uncached so the next scan can try again.
+  if (usedFor && label.setId) useCache.set(label.setId, usedFor);
+  return { ...base, usedFor };
 }
 
 /** Join the label section, drop the "1 INDICATIONS AND USAGE" heading, collapse whitespace. */
@@ -93,7 +105,7 @@ async function condense(labelText: string): Promise<string | null> {
   ]);
   const out = raw.trim().replace(/^["']|["']$/g, '').replace(/\.$/, '');
   if (!out || /^none$/i.test(out) || DOSE_OR_AGE.test(out)) return null;
-  return tidy(out);
+  return tidy(out, false); // the model's own phrasing is trusted; single words like "ADHD" are fine
 }
 
 /** Sourced fallback when AI is off or its output failed the guard: first clause of the label sentence. */
@@ -107,22 +119,26 @@ function heuristic(labelText: string, drugName: string): string | null {
     .trim();
   const clean = stripped.replace(/\s+/g, ' ');
   if (!clean || clean.length > 120 || DOSE_OR_AGE.test(clean)) return null;
-  return tidy(clean);
+  return tidy(clean, true); // the crude first-sentence cut can leave fragments; require a real phrase
 }
 
 // Trailing/leading junk words that mean the phrase got cut mid-clause (e.g. "hypothyroidism and", "prevent").
 const STOPWORD = /^(and|or|to|of|in|for|with|the|a|an|as|is|are|by|due)$/i;
 
 /**
- * Accept only phrases that read like a condition. Rejects the mangled fragments the crude first-sentence
- * heuristic can leave behind ("prevent", "hypothyroidism and", "reading") rather than showing a wrong "used for".
+ * Clean up a candidate phrase. With `strict` (the crude heuristic), reject the mangled fragments it can
+ * leave behind ("prevent", "hypothyroidism and", "reading"). Without it (trusted AI output), keep short
+ * but valid answers like "ADHD" or "asthma" — only drop something that is empty or a bare stopword.
  */
-function tidy(s: string): string | null {
+function tidy(s: string, strict: boolean): string | null {
   const phrase = s.replace(/\s+/g, ' ').replace(/^the\s+/i, '').replace(/[\s,]+$/, '').trim();
+  if (!phrase) return null;
   const words = phrase.split(' ');
-  if (words.length < 2) return null; // a single word is almost always a truncated verb, not a condition
   if (STOPWORD.test(words[0]) || STOPWORD.test(words[words.length - 1])) return null;
-  return phrase.charAt(0).toLowerCase() + phrase.slice(1);
+  if (strict && words.length < 2) return null; // a lone word from the heuristic is usually a truncated verb
+  // Lower-case the first letter for a mid-sentence feel, but leave acronyms ("ADHD", "COPD") alone.
+  const acronym = /[A-Z]/.test(words[0].slice(1));
+  return acronym ? phrase : phrase.charAt(0).toLowerCase() + phrase.slice(1);
 }
 
 function escapeRegex(s: string): string {

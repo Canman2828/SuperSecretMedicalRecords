@@ -83,6 +83,8 @@ export const translateSchema = z.object({
   text: z.string().trim().min(1).max(4000),
   language: z.string().trim().min(1).max(40).optional(),
   knownMedications: z.array(z.string().min(1).max(200)).max(100).optional(),
+  /** 'summary' keeps only the medical instructions; 'faithful' (default) rewrites everything. */
+  mode: z.enum(['faithful', 'summary']).optional(),
 });
 
 export const medicationUsesSchema = z
