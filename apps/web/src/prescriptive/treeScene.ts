@@ -213,6 +213,7 @@ export class TreeScene {
   private nodes = new Map<string, NodeView>();
   private edges: EdgeView[] = [];
   private selected: string[] = [];
+  private hovered: string | null = null;
   private raycaster = new THREE.Raycaster();
   private pointerDown: { x: number; y: number } | null = null;
   private tween: { t0: number; dur: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromP: THREE.Vector3; toP: THREE.Vector3 } | null = null;
@@ -495,6 +496,69 @@ export class TreeScene {
     this.tween = { t0: performance.now(), dur: 750, fromT: this.controls.target.clone(), toT, fromP: this.camera.position.clone(), toP };
   }
 
+  // ---------- hand-gesture hooks (Camera view) ----------
+
+  private stopAuto() {
+    this.interacted = true;
+    this.controls.autoRotate = false;
+    this.tween = null;
+  }
+
+  /** Spin the tree around its vertical axis by `radians` (positive = counter-clockwise from above). */
+  orbitBy(radians: number) {
+    if (this.ar) return;
+    this.stopAuto();
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), radians);
+    this.camera.position.copy(this.controls.target).add(offset);
+  }
+
+  /** Zoom in (factor > 1) or out (factor < 1). */
+  zoomBy(factor: number) {
+    if (this.ar || !(factor > 0)) return;
+    this.stopAuto();
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    const dist = THREE.MathUtils.clamp(offset.length() / factor, this.controls.minDistance, this.controls.maxDistance);
+    this.camera.position.copy(this.controls.target).add(offset.setLength(dist));
+  }
+
+  /**
+   * The node at a point on screen (viewport pixels), if any. With `slop` > 0 (hand controls), a point
+   * that misses every orb still picks the nearest one whose edge is within `slop` pixels.
+   */
+  nodeAtScreen(x: number, y: number, slop = 0): string | null {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    if (x < r.left - slop || x > r.right + slop || y < r.top - slop || y > r.bottom + slop) return null;
+    this.raycaster.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1), this.camera);
+    const hit = this.pick(this.raycaster);
+    if (hit || slop <= 0) return hit;
+
+    let best: string | null = null;
+    let bestGap = slop;
+    for (const [id, v] of this.nodes) {
+      if (!v.group.visible || v.group.scale.x < 0.5) continue;
+      const c = this.nodeScreenRect(id);
+      if (!c) continue;
+      const gap = Math.hypot(c.x - x, c.y - y) - c.size / 2; // distance from the orb's edge
+      if (gap < bestGap) {
+        bestGap = gap;
+        best = id;
+      }
+    }
+    return best;
+  }
+
+  /** Same as clicking at a point on screen (hand controls pass a generous `slop`). */
+  clickAt(x: number, y: number, slop = 0) {
+    this.interacted = true;
+    this.cb.onNodeClick(this.nodeAtScreen(x, y, slop));
+  }
+
+  /** Highlight the node a hand cursor is over, so users can see what a pinch will pick. */
+  setHover(id: string | null) {
+    this.hovered = id;
+  }
+
   setMode(mode: ViewMode) {
     this.mode = mode;
     this.applyBackground();
@@ -696,16 +760,17 @@ export class TreeScene {
       appear.set(id, a);
       const s = a <= 0 ? 0.0001 : id === 'patient' ? 0.6 + 0.4 * easeInOut(a) : Math.max(0.0001, easeOutBack(a));
       const isSel = sel.includes(id);
+      const isHover = id === this.hovered;
       const dim = sel.length && !isSel && !neighbors.has(id) && id !== 'patient' ? 0.35 : 1;
       v.group.visible = a > 0;
-      v.group.scale.setScalar(s * (isSel ? 1.12 : 1));
+      v.group.scale.setScalar(s * (isSel ? 1.12 : isHover ? 1.18 : 1));
       v.orb.material.opacity = a * dim;
       v.orb.material.emissiveIntensity = isSel ? 1.0 : 0.5 + Math.sin(t * 1.6 + v.phase) * 0.08;
       (v.icon.material as THREE.SpriteMaterial).opacity = a * dim;
       (v.label.material as THREE.SpriteMaterial).opacity = a * dim;
       const haloM = v.halo.material as THREE.SpriteMaterial;
-      haloM.opacity = a * dim * (isSel ? 0.95 : 0.55 + Math.sin(t * 1.6 + v.phase) * 0.12);
-      v.halo.scale.setScalar(v.radius * (isSel ? 5.4 : 4.2));
+      haloM.opacity = a * (isSel || isHover ? 0.95 : dim * (0.55 + Math.sin(t * 1.6 + v.phase) * 0.12));
+      v.halo.scale.setScalar(v.radius * (isSel ? 5.4 : isHover ? 5.8 : 4.2));
       // Keep the icon on the side of the orb that faces the viewer.
       const local = v.group.worldToLocal(cam.clone()).normalize();
       v.icon.position.copy(local.multiplyScalar(v.radius * 1.02));
