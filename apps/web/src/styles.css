@@ -109,3 +109,13 @@ button:disabled, .btn:disabled, .chip:disabled { opacity: 0.5; cursor: not-allow
 /* ---------- sign in ---------- */
 /* design.css sets .auth-card label{display:block}; the checkbox label must stay inline */
 .auth-card .check { display: inline-flex; }
+
+/* ---------- medictionary: chat assistant ---------- */
+.chat { display: flex; flex-direction: column; gap: 16px; margin-top: 30px; }
+.chat .panel-head { margin-bottom: 0; }
+.chat-log { max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.chat-msg { padding: 10px 16px; border-radius: var(--r-md); max-width: 85%; white-space: pre-wrap; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+.chat-assistant { background: var(--surface); box-shadow: var(--out-sm); align-self: flex-start; }
+.chat-user { background: var(--acc-tint); color: var(--acc-deep); align-self: flex-end; }
+.chat-ask { height: 60px; }
+.chat-ask input { font-size: 17px; }

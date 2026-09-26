@@ -138,3 +138,26 @@ export interface ExplainResponse {
   source: 'glossary' | 'ai' | 'none';
   needsVerification: boolean;
 }
+
+// ---------- Medication chat ----------
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+export interface ChatRequest {
+  /** Full conversation, oldest first, ending with the patient's new message. Nothing is stored server-side. */
+  messages: ChatMessage[];
+  /** The patient's current profile, as context. Patient-entered, so unverified. */
+  profile?: {
+    medications: Pick<Medication, 'enteredName' | 'normalizedName' | 'strength' | 'frequency'>[];
+    allergies: Pick<Allergy, 'substance'>[];
+  };
+}
+
+/** Server-sent events on the /api/chat stream. `done.text` is the full reply and may differ from the streamed text. */
+export type ChatStreamEvent =
+  | { type: 'text'; text: string }
+  | { type: 'done'; text: string }
+  | { type: 'error'; message: string };

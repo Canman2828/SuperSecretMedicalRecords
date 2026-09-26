@@ -2,6 +2,7 @@ import cors from 'cors';
 import express, { type ErrorRequestHandler } from 'express';
 import { env } from './env.js';
 import { authRouter } from './routes/auth.js';
+import { chatRouter } from './routes/chat.js';
 import { drugsRouter } from './routes/drugs.js';
 import { explainRouter } from './routes/explain.js';
 import { interactionsRouter } from './routes/interactions.js';
@@ -20,6 +21,7 @@ export function createApp() {
   });
 
   app.use('/api/auth', authRouter);
+  app.use('/api/chat', chatRouter);
   app.use('/api/drugs', drugsRouter);
   app.use('/api/explain', explainRouter);
   app.use('/api/interactions', interactionsRouter);

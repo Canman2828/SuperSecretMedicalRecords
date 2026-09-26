@@ -1,4 +1,6 @@
 import type {
+  ChatRequest,
+  ChatStreamEvent,
   DrugSearchResult,
   ExplainRequest,
   ExplainResponse,
@@ -54,6 +56,40 @@ export function createApiClient(baseUrl: string, getToken?: () => string | null 
     /** Only call this after the user explicitly opts in to saving. */
     saveProfile: (profile: Profile) =>
       request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
+    /**
+     * Stream a medication-chat reply. Calls `onText` with each chunk and resolves with the full reply.
+     * Needs a streaming fetch (browsers); React Native's fetch can't read response streams.
+     */
+    chat: async (body: ChatRequest, onText: (chunk: string) => void, signal?: AbortSignal) => {
+      const res = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal,
+      });
+      if (!res.ok || !res.body) {
+        const text = await res.text();
+        throw new Error(`${res.status} ${res.statusText}: ${text}`);
+      }
+
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const frames = buffer.split('\n\n');
+        buffer = frames.pop() ?? '';
+        for (const frame of frames) {
+          if (!frame.startsWith('data: ')) continue;
+          const event = JSON.parse(frame.slice(6)) as ChatStreamEvent;
+          if (event.type === 'text') onText(event.text);
+          else if (event.type === 'done') return event.text;
+          else throw new Error(event.message);
+        }
+      }
+      throw new Error('The reply was cut off. Please try again.');
+    },
   };
 }
 

@@ -46,6 +46,34 @@ export const interactionCheckSchema = z.object({
   foods: z.array(z.object({ name: z.string().min(1) })).max(100),
 });
 
+export const chatSchema = z.object({
+  messages: z
+    .array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().trim().min(1).max(2000) }))
+    .min(1)
+    .max(40)
+    .refine((msgs) => msgs.every((m, i) => m.role === (i % 2 === 0 ? 'user' : 'assistant')), {
+      message: 'Messages must alternate, starting and ending with the patient.',
+    })
+    .refine((msgs) => msgs.length % 2 === 1, {
+      message: 'Messages must alternate, starting and ending with the patient.',
+    }),
+  profile: z
+    .object({
+      medications: z
+        .array(
+          z.object({
+            enteredName: z.string().min(1).max(200),
+            normalizedName: z.string().max(200).optional(),
+            strength: z.string().max(100).optional(),
+            frequency: z.string().max(100).optional(),
+          }),
+        )
+        .max(100),
+      allergies: z.array(z.object({ substance: z.string().min(1).max(200) })).max(100),
+    })
+    .optional(),
+});
+
 export const explainSchema = z.object({
   term: z.string().min(1).max(100),
   context: z.string().max(1000).optional(),

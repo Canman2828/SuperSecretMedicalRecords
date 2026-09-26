@@ -39,7 +39,7 @@ export function App() {
         {page === 'home' && <HomePage />}
         {page === 'compremedic' && <CompremedicPage knownMedications={knownMedications} />}
         {page === 'prescriptive' && <PrescriptivePage profile={profile} onProfileChange={setProfile} loggedIn={loggedIn} />}
-        {page === 'medictionary' && <MedictionaryPage />}
+        {page === 'medictionary' && <MedictionaryPage profile={profile} />}
         {page === 'signin' && (
           <SignInPage
             onSignedIn={(token, remember) => {
