@@ -37,7 +37,7 @@ export function App() {
       <Nav page={page} loggedIn={loggedIn} onSignOut={signOut} />
       <main className="wrap">
         {page === 'home' && <HomePage />}
-        {page === 'compremedic' && <CompremedicPage knownMedications={knownMedications} />}
+        {page === 'compremedic' && <CompremedicPage knownMedications={knownMedications} loggedIn={loggedIn} />}
         {page === 'prescriptive' && <PrescriptivePage profile={profile} onProfileChange={setProfile} loggedIn={loggedIn} />}
         {page === 'medictionary' && <MedictionaryPage profile={profile} />}
         {page === 'signin' && (

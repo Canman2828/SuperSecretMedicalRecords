@@ -1,4 +1,4 @@
-import { lookupGlossary, type ExplainResponse } from '@medifyrx/shared';
+import { lookupGlossary, type ExplainResponse, type MedDocument } from '@medifyrx/shared';
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { api } from '../api/client';
 import { PageHead } from '../layout/Shell';
@@ -18,12 +18,13 @@ type Side = 'orig' | 'plain';
 const SAMPLE_TEXT =
   'AMOXICILLIN 500 MG CAPSULES\nTAKE 1 CAPSULE PO 3 TIMES DAILY FOR 10 DAYS. COMPLETE FULL COURSE OF THERAPY. MAY CAUSE GI UPSET; MAY TAKE WITH FOOD. DISCONTINUE AND CONTACT PRESCRIBER IF RASH OR URTICARIA OCCURS.';
 
-const METHOD_LABEL: Record<ExtractMethod | 'sample', string> = {
+const METHOD_LABEL: Record<ExtractMethod | 'sample' | 'saved', string> = {
   photo: 'Read from photo',
   pdf: 'Read from PDF',
   'scanned-pdf': 'Read from scanned PDF',
   docx: 'Read from Word document',
   sample: 'Sample label',
+  saved: 'Saved from your phone',
 };
 
 const SOURCE_NOTE: Record<SimplifySource, string> = {
@@ -42,7 +43,7 @@ const EMPTY: Transcript = { words: [], chunkStarts: [] };
 
 interface Doc {
   name: string;
-  method: ExtractMethod | 'sample';
+  method: ExtractMethod | 'sample' | 'saved';
   confidence?: number;
   text: string;
 }
@@ -58,9 +59,13 @@ interface Explanation {
 
 const isTouch = () => matchMedia('(pointer: coarse)').matches;
 
-export function CompremedicPage({ knownMedications }: { knownMedications: string[] }) {
+export function CompremedicPage({ knownMedications, loggedIn }: { knownMedications: string[]; loggedIn: boolean }) {
   const [doc, setDoc] = useState<Doc | null>(null);
-  const [open, setOpen] = useState({ upload: true, read: false });
+  const [open, setOpen] = useState({ upload: true, read: false, saved: false });
+
+  // Documents the user saved from the phone app (Compremedic cloud save). Signed-in users only.
+  const [saved, setSaved] = useState<MedDocument[]>([]);
+  const [savedError, setSavedError] = useState<string | null>(null);
   const [busy, setBusy] = useState<{ label: string; fraction?: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
@@ -102,7 +107,44 @@ export function CompremedicPage({ knownMedications }: { knownMedications: string
   const accept = (d: Doc) => {
     setDoc(d);
     setEditing(null);
-    setOpen({ upload: false, read: true });
+    setOpen((o) => ({ ...o, upload: false, read: true }));
+  };
+
+  // Load the user's cloud-saved documents (from the phone app) once signed in.
+  useEffect(() => {
+    if (!loggedIn) {
+      setSaved([]);
+      return;
+    }
+    let alive = true;
+    setSavedError(null);
+    api
+      .listDocuments()
+      .then((r) => {
+        if (!alive) return;
+        setSaved(r.documents);
+        if (r.documents.length) setOpen((o) => ({ ...o, saved: true })); // surface them, don't hide behind a collapsed step
+      })
+      .catch(() => alive && setSavedError('Could not load your saved documents. Please try again.'));
+    return () => {
+      alive = false;
+    };
+  }, [loggedIn]);
+
+  // Open a saved document in the reader above (re-simplifies its original text).
+  const openSaved = (d: MedDocument) => {
+    accept({ name: d.docType ?? 'Saved document', method: 'saved', text: d.originalText || d.plainText });
+    setOpen((o) => ({ ...o, read: true }));
+    setTimeout(() => document.getElementById('step-read')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
+
+  const deleteSaved = (id: string) => {
+    const prev = saved;
+    setSaved((s) => s.filter((x) => x.id !== id)); // optimistic
+    api.deleteDocument(id).catch(() => {
+      setSaved(prev);
+      setSavedError('Could not delete that document. Please try again.');
+    });
   };
 
   const handleFile = async (file: File | undefined) => {
@@ -379,6 +421,53 @@ export function CompremedicPage({ knownMedications }: { knownMedications: string
               </p>
             </div>
           </div>
+        </Step>
+
+        {/* ---------- Step 3: documents saved from the phone app ---------- */}
+        <Step
+          n={3}
+          id="saved"
+          title="Saved from your phone"
+          done={false}
+          open={open.saved}
+          onToggle={() => setOpen((o) => ({ ...o, saved: !o.saved }))}
+          status={
+            loggedIn
+              ? saved.length > 0 && <span className="cl-ok"><Icon name="check" size={14} />{saved.length} saved</span>
+              : <span className="cl-wait">Sign in to see these</span>
+          }
+        >
+          {!loggedIn ? (
+            <p className="small muted">
+              Documents you save in the phone app appear here.{' '}
+              <a className="text-btn" href="#signin">Sign in</a> to see them.
+            </p>
+          ) : savedError ? (
+            <p className="step-error" role="alert">{savedError}</p>
+          ) : saved.length === 0 ? (
+            <p className="small muted">
+              No saved documents yet. In the phone app’s Compremedic, photograph a document and tap “Save to cloud.”
+            </p>
+          ) : (
+            <ul className="saved-list">
+              {saved.map((d) => (
+                <li key={d.id} className="saved-item neu-in">
+                  <img className="saved-thumb" src={`data:${d.mimeType};base64,${d.imageBase64}`} alt="" />
+                  <div className="saved-meta">
+                    <span className="saved-type">{d.docType ?? 'Document'}</span>
+                    <span className="small muted">{new Date(d.createdAt).toLocaleDateString()}</span>
+                    <p className="saved-text">{d.plainText}</p>
+                  </div>
+                  <div className="saved-actions">
+                    <button className="btn btn-neu" style={{ height: 38 }} onClick={() => openSaved(d)}>Open</button>
+                    <button className="icon-btn close" aria-label="Delete document" onClick={() => deleteSaved(d.id)}>
+                      <Icon name="x" size={16} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Step>
       </ol>
 

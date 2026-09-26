@@ -270,3 +270,12 @@ button:disabled, .btn:disabled, .chip:disabled { opacity: 0.5; cursor: not-allow
 
 /* home: Prescriptive card preview of the 3D orbs */
 .mini-orbs { width: 100%; height: 104px; display: block; }
+
+/* Compremedic: documents saved from the phone app */
+.saved-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.saved-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px; }
+.saved-thumb { width: 56px; height: 56px; flex: none; border-radius: 10px; object-fit: cover; background: var(--bg); }
+.saved-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.saved-type { font-weight: 600; color: var(--ink); }
+.saved-text { margin: 2px 0 0; color: var(--ink-3, var(--ink)); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.saved-actions { display: flex; align-items: center; gap: 8px; flex: none; }
