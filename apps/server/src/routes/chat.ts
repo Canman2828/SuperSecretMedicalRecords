@@ -1,11 +1,17 @@
 import { ApiError } from '@google/genai';
-import type { ChatStreamEvent } from '@medifyrx/shared';
+import type { ChatRequest, ChatStreamEvent } from '@medifyrx/shared';
 import { Router } from 'express';
 import { validateBody } from '../middleware/validate.js';
 import { chatSchema } from '../schemas.js';
 import { chatEnabled, streamChatReply } from '../services/chat.js';
 
 export const chatRouter = Router();
+
+// After every 10th question in a conversation, the reply ends with a nudge toward a real professional.
+const PROFESSIONAL_NUDGE_EVERY = 10;
+const PROFESSIONAL_NUDGE =
+  "You've asked a lot of good questions. A pharmacist or your doctor can look at your full situation and give you " +
+  'answers that fit you, so it may help to talk with one of them next.';
 
 // POST /api/chat { messages, profile? } — medication Q&A for guests; nothing is stored.
 // Streams server-sent events: {type:'text'} chunks, then {type:'done'} or {type:'error'}.
@@ -21,8 +27,16 @@ chatRouter.post('/', validateBody(chatSchema), async (req, res) => {
   const abort = new AbortController();
   res.on('close', () => abort.abort());
 
+  const questions = (req.body as ChatRequest).messages.filter((m) => m.role === 'user').length;
+  const nudge = questions % PROFESSIONAL_NUDGE_EVERY === 0;
+
   try {
-    const text = await streamChatReply(req.body, (chunk) => send({ type: 'text', text: chunk }), abort.signal);
+    let text = await streamChatReply(req.body, (chunk) => send({ type: 'text', text: chunk }), abort.signal);
+    if (nudge) {
+      const addition = `\n\n${PROFESSIONAL_NUDGE}`;
+      send({ type: 'text', text: addition });
+      text += addition;
+    }
     send({ type: 'done', text });
   } catch (err) {
     if (abort.signal.aborted) return; // patient left
