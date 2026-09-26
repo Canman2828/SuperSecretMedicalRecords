@@ -46,12 +46,21 @@ async function oneMedicationUse(medication: string): Promise<MedicationUse> {
   const hit = cache.get(key);
   if (hit) return hit;
 
-  const result = await resolveUse(medication).catch(() => ({ medication, usedFor: null }));
-  cache.set(key, result);
-  return result;
+  // `cacheable` guards against poisoning: a stable answer (a summary, or a real "no label")
+  // is cached forever, but a transient miss (AI condense timed out on text we DID find) is
+  // left uncached so the next scan can retry instead of showing null for the server's lifetime.
+  const { cacheable, ...use } = await resolveUse(medication).catch(() => ({
+    medication,
+    usedFor: null,
+    cacheable: false as const,
+  }));
+  if (cacheable) cache.set(key, use);
+  return use;
 }
 
-async function resolveUse(medication: string): Promise<MedicationUse> {
+type Resolved = MedicationUse & { cacheable: boolean };
+
+async function resolveUse(medication: string): Promise<Resolved> {
   // Normalize the spelling to a canonical ingredient (RxNorm), then find that ingredient's
   // official label by name (openFDA). Fall back to the raw OCR/entered name if RxNorm misses.
   const [match] = await searchDrugs(medication, 1);
@@ -59,10 +68,12 @@ async function resolveUse(medication: string): Promise<MedicationUse> {
 
   const label = await getLabelByName(lookupName);
   const raw = cleanSection(label?.indicationsAndUsage);
-  if (!raw) return { medication, usedFor: null, sourceUrl: label?.dailyMedUrl };
+  // No label / no indications section: a stable null, safe to cache.
+  if (!raw) return { medication, usedFor: null, sourceUrl: label?.dailyMedUrl, cacheable: true };
 
   const usedFor = (await condense(raw).catch(() => null)) ?? heuristic(raw, lookupName);
-  return { medication, usedFor, sourceUrl: label?.dailyMedUrl };
+  // We had label text: caching a null here would freeze in a transient AI timeout — only cache a hit.
+  return { medication, usedFor, sourceUrl: label?.dailyMedUrl, cacheable: usedFor !== null };
 }
 
 /** Join the label section, drop the "1 INDICATIONS AND USAGE" heading, collapse whitespace. */
@@ -78,7 +89,7 @@ async function condense(labelText: string): Promise<string | null> {
   // Cap the model call so a slow/queued response falls back to the heuristic instead of hanging the request.
   const raw = await Promise.race([
     callModel(input),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('condense timeout')), 8000)),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('condense timeout')), 12000)),
   ]);
   const out = raw.trim().replace(/^["']|["']$/g, '').replace(/\.$/, '');
   if (!out || /^none$/i.test(out) || DOSE_OR_AGE.test(out)) return null;
