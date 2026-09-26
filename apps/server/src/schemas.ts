@@ -85,6 +85,9 @@ export const translateSchema = z.object({
   knownMedications: z.array(z.string().min(1).max(200)).max(100).optional(),
 });
 
-export const medicationUsesSchema = z.object({
-  medications: z.array(z.string().trim().min(1).max(200)).min(1).max(20),
-});
+export const medicationUsesSchema = z
+  .object({
+    medications: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+    text: z.string().trim().min(1).max(4000).optional(),
+  })
+  .refine((b) => b.medications?.length || b.text, { message: 'Send medications or scanned text.' });

@@ -65,3 +65,49 @@ export async function searchDrugs(query: string, limit = 6): Promise<DrugSearchR
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+interface DrugsResponse {
+  drugGroup?: { conceptGroup?: { tty: string; conceptProperties?: unknown[] }[] };
+}
+
+const drugNameCache = new Map<string, boolean>();
+
+/** True if RxNorm knows `word` as an ingredient or brand, i.e. it has actual products under it. */
+async function isDrugName(word: string): Promise<boolean> {
+  const q = word.toLowerCase();
+  const hit = drugNameCache.get(q);
+  if (hit !== undefined) return hit;
+  const data = await getJson<DrugsResponse>(`${BASE}/drugs.json?name=${encodeURIComponent(q)}`);
+  const found = (data.drugGroup?.conceptGroup ?? []).some((g) => g.conceptProperties?.length);
+  drugNameCache.set(q, found);
+  return found;
+}
+
+// Everyday label words that are also RxNorm ingredient names, or just never worth a lookup.
+const LABEL_WORDS = new Set(
+  `take tablet tablets capsule capsules mouth daily every morning evening night bedtime hours
+  with without food water meal meals refill refills before after needed pain doctor pharmacy
+  quantity qty discard date use until finished apply swallow whole chew crush drink plenty
+  alcohol sodium oxygen calcium iron zinc sugar salt oral topical solution extended release
+  delayed tabs caps once twice three times week weeks days month months street avenue suite
+  patient prescriber generic substitute manufactured`.split(/\s+/),
+);
+
+/**
+ * Drug names printed on a scanned label, in the order they appear. Checks each distinct
+ * word against RxNorm so the result reflects the paper, not the user's saved profile.
+ * OCR typos won't match (on purpose: a wrong drug is worse than none).
+ */
+export async function findDrugNamesInText(text: string, limit = 5): Promise<string[]> {
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+  for (const [word] of text.matchAll(/[A-Za-z]{4,}/g)) {
+    const w = word.toLowerCase();
+    if (seen.has(w) || LABEL_WORDS.has(w)) continue;
+    seen.add(w);
+    candidates.push(w);
+    if (candidates.length >= 40) break;
+  }
+  const checks = await Promise.all(candidates.map((w) => isDrugName(w).catch(() => false)));
+  return candidates.filter((_, i) => checks[i]).slice(0, limit).map(capitalize);
+}
