@@ -1,4 +1,4 @@
-import { LOW_CONFIDENCE, type Annotation, type AnnotationCategory } from '@clearrx/shared';
+import { LOW_CONFIDENCE, type Annotation, type AnnotationCategory } from '@medifyrx/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 // Color + icon, never color alone (accessibility).

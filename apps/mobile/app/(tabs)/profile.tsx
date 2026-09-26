@@ -1,4 +1,4 @@
-import { newId, type InteractionCheckResponse } from '@clearrx/shared';
+import { newId, type InteractionCheckResponse } from '@medifyrx/shared';
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '../../src/api';

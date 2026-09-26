@@ -1,9 +1,9 @@
-# ClearRx
+# medify.Rx
 
 Hackathon monorepo: an **iOS app** (live prescription highlighter + profile), a **website** (profile + interaction tree), and one **Express API** they both talk to.
 
 ```
-clearrx/
+medifyrx/
 ├── apps/
 │   ├── mobile/    Expo (React Native) iOS app — camera, on-device OCR, live highlights, TTS
 │   ├── web/       Vite + React — profile editor, RxNorm autocomplete, React Flow interaction tree

@@ -1,4 +1,4 @@
-import { newId, type Annotation } from '@clearrx/shared';
+import { newId, type Annotation } from '@medifyrx/shared';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -58,7 +58,7 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.center}>
-        <Text style={styles.title}>ClearRx Lens</Text>
+        <Text style={styles.title}>medify.Rx Lens</Text>
         <Text style={styles.body}>Point your camera at a prescription to highlight and explain medical terms.</Text>
         <Pressable style={styles.primary} onPress={requestPermission}>
           <Text style={styles.primaryText}>Allow camera</Text>

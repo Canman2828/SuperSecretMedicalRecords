@@ -1,4 +1,4 @@
-import type { DrugSearchResult } from '@clearrx/shared';
+import type { DrugSearchResult } from '@medifyrx/shared';
 
 // RxNorm (NLM) — free, no API key.
 // https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html

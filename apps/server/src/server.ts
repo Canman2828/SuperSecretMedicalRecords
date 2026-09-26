@@ -11,7 +11,7 @@ async function main() {
   }
 
   createApp().listen(env.port, '0.0.0.0', () => {
-    console.log(`ClearRx API on http://localhost:${env.port}`);
+    console.log(`medify.Rx API on http://localhost:${env.port}`);
   });
 }
 

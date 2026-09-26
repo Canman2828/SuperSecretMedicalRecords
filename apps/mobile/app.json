@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "ClearRx",
-    "slug": "clearrx",
-    "scheme": "clearrx",
+    "name": "medify.Rx",
+    "slug": "medifyrx",
+    "scheme": "medifyrx",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "platforms": ["ios"],
     "ios": {
-      "bundleIdentifier": "com.clearrx.app",
+      "bundleIdentifier": "com.medifyrx.app",
       "supportsTablet": false
     },
     "plugins": [
@@ -16,7 +16,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "ClearRx uses the camera to highlight and explain medical terms on your prescription. Images are not saved."
+          "cameraPermission": "medify.Rx uses the camera to highlight and explain medical terms on your prescription. Images are not saved."
         }
       ]
     ],

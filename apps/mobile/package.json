@@ -1,5 +1,5 @@
 {
-  "name": "@clearrx/mobile",
+  "name": "@medifyrx/mobile",
   "version": "0.1.0",
   "private": true,
   "main": "expo-router/entry",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@clearrx/shared": "*",
+    "@medifyrx/shared": "*",
     "@expo/metro-runtime": "~57.0.16",
     "@react-native-ml-kit/text-recognition": "^2.0.0",
     "expo": "~57.0.25",

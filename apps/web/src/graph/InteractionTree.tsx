@@ -1,13 +1,13 @@
-import type { InteractionCheckResponse, ProfileNode, Relationship, RelationshipStatus } from '@clearrx/shared';
+import type { InteractionCheckResponse, ProfileNode, Relationship, RelationshipStatus } from '@medifyrx/shared';
 import { Background, Controls, MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import { useMemo } from 'react';
 
 // Color is never the only signal: every status also gets an icon + text label.
 export const STATUS_STYLE: Record<RelationshipStatus, { icon: string; label: string; color: string }> = {
-  documented: { icon: '⚠', label: 'Documented interaction', color: '#c2410c' },
-  warning: { icon: '!', label: 'Label warning', color: '#b45309' },
-  contraindication: { icon: '⊘', label: 'Contraindication', color: '#b91c1c' },
-  'possible-allergy-match': { icon: '△', label: 'Possible allergy match', color: '#7c3aed' },
+  documented: { icon: '⚠', label: 'Documented interaction', color: '#9A5B4F' },
+  warning: { icon: '!', label: 'Label warning', color: '#8A6A2E' },
+  contraindication: { icon: '⊘', label: 'Contraindication', color: '#8A3F4A' },
+  'possible-allergy-match': { icon: '△', label: 'Possible allergy match', color: '#665C82' },
 };
 
 const TYPE_ICON: Record<ProfileNode['type'], string> = {
@@ -55,7 +55,7 @@ export function InteractionTree({ result, onSelectRelationship }: Props) {
         id: `tree-${n.id}`,
         source: 'patient',
         target: n.id,
-        style: { stroke: '#cbd5e1' },
+        style: { stroke: '#C9BFB9', strokeWidth: 2 },
         selectable: false,
       }));
 
@@ -69,7 +69,9 @@ export function InteractionTree({ result, onSelectRelationship }: Props) {
         animated: true,
         label: `${s.icon} ${s.label}`,
         labelStyle: { fill: s.color, fontWeight: 600 },
-        labelBgStyle: { fill: '#fff' },
+        labelBgStyle: { fill: '#F7F7F7' },
+        labelBgPadding: [6, 4] as [number, number],
+        labelBgBorderRadius: 8,
         style: { stroke: s.color, strokeWidth: 2.5, cursor: 'pointer' },
         markerEnd: { type: MarkerType.ArrowClosed, color: s.color },
         data: { relationship: r },
@@ -91,7 +93,7 @@ export function InteractionTree({ result, onSelectRelationship }: Props) {
           if (r) onSelectRelationship(r);
         }}
       >
-        <Background />
+        <Background color="#D2D2DA" gap={22} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

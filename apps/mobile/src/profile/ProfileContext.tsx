@@ -1,4 +1,4 @@
-import type { Allergy, Food, Medication, Profile } from '@clearrx/shared';
+import type { Allergy, Food, Medication, Profile } from '@medifyrx/shared';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
 // In-memory guest profile shared by the Scan and Profile tabs.

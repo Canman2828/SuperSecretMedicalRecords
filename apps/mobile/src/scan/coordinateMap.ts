@@ -1,4 +1,4 @@
-import type { BBox } from '@clearrx/shared';
+import type { BBox } from '@medifyrx/shared';
 
 /**
  * OCR boxes are in photo-pixel space. The camera preview fills the screen with

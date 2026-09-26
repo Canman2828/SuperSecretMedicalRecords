@@ -12,6 +12,7 @@ export interface OcrWord {
 const UNITS = new Set(['MG', 'MCG', 'G', 'ML', 'L', 'UNITS', 'UNIT', 'IU', 'MEQ', '%']);
 const COUNT_NOUNS = new Set(['TABLET', 'TABLETS', 'TAB', 'TABS', 'CAPSULE', 'CAPSULES', 'CAP', 'CAPS', 'DROP', 'DROPS', 'PUFF', 'PUFFS', 'SPRAY', 'SPRAYS']);
 const TIME_NOUNS = new Set(['HOUR', 'HOURS', 'HR', 'HRS', 'DAY', 'DAYS', 'WEEK', 'WEEKS', 'MONTH', 'MONTHS']);
+const FREQUENCY_NOUNS = new Set(['TIME', 'TIMES']); // "3 times daily"
 const NEGATIONS = new Set(['DO NOT', 'DONT', 'NEVER', 'AVOID', 'NOT']);
 const NUMBER_RE = /^\d+(\.\d+)?$/;
 const NUMBER_WITH_UNIT_RE = /^(\d+(\.\d+)?)(MG|MCG|G|ML|L|IU|MEQ|%)$/;
@@ -75,8 +76,8 @@ export function parseCriticalFields(
       continue;
     }
 
-    // "500 mg", "1 capsule", "7 days"
-    if (NUMBER_RE.test(w.text) && next && (UNITS.has(nextT) || COUNT_NOUNS.has(nextT) || TIME_NOUNS.has(nextT))) {
+    // "500 mg", "1 capsule", "7 days", "3 times"
+    if (NUMBER_RE.test(w.text) && next && (UNITS.has(nextT) || COUNT_NOUNS.has(nextT) || TIME_NOUNS.has(nextT) || FREQUENCY_NOUNS.has(nextT))) {
       const span = [w, next];
       // include a preceding "for" / "every" so "for 7 days" stays together
       const prev = words[i - 1];
@@ -84,8 +85,17 @@ export function parseCriticalFields(
       if (prev && (prevT === 'FOR' || prevT === 'EVERY')) {
         span.unshift(prev);
       }
+      // keep "3 times daily" / "3 times a day" together so "daily" isn't explained on its own as "once a day"
+      let consumed = 2;
+      if (FREQUENCY_NOUNS.has(nextT)) {
+        const t2 = words[i + 2] ? normalizeToken(words[i + 2].text) : '';
+        const t3 = words[i + 3] ? normalizeToken(words[i + 3].text) : '';
+        if (t2 === 'DAILY' || t2 === 'WEEKLY') consumed = 3;
+        else if ((t2 === 'A' || t2 === 'PER') && (t3 === 'DAY' || t3 === 'WEEK')) consumed = 4;
+        span.push(...words.slice(i + 2, i + consumed));
+      }
       out.push(makeAnnotation(span, 'critical', true));
-      i += 2;
+      i += consumed;
       continue;
     }
 

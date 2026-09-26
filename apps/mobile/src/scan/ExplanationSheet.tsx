@@ -1,4 +1,4 @@
-import { LOW_CONFIDENCE, type Annotation } from '@clearrx/shared';
+import { LOW_CONFIDENCE, type Annotation } from '@medifyrx/shared';
 import * as Speech from 'expo-speech';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';

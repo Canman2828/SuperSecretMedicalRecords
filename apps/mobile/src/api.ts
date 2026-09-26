@@ -1,3 +1,3 @@
-import { createApiClient } from '@clearrx/shared';
+import { createApiClient } from '@medifyrx/shared';
 
 export const api = createApiClient(process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000');

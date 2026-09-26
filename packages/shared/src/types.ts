@@ -1,4 +1,4 @@
-// Shared data model for ClearRx. Used by the server, the web app, and the iOS app
+// Shared data model for medify.Rx. Used by the server, the web app, and the iOS app
 // so a medication added from the scanner is the exact same shape as one typed in manually.
 
 // ---------- Profile ----------

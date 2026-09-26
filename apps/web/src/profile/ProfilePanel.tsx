@@ -1,11 +1,25 @@
-import { newId, type AllergyType, type FoodReason, type Medication, type Profile } from '@clearrx/shared';
-import { useState, type FormEvent } from 'react';
+import { newId, type AllergyType, type FoodReason, type Medication, type Profile } from '@medifyrx/shared';
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { Icon, type IconName } from '../ui/Icon';
 import { MedicationSearch } from './MedicationSearch';
 
 interface Props {
   profile: Profile;
   onChange: (p: Profile) => void;
 }
+
+export const DOT = { medication: '#736A86', allergy: '#8E98AC', food: '#C9A99E' } as const;
+
+const ALLERGY_TYPES: { v: AllergyType; label: string }[] = [
+  { v: 'medication', label: 'Medicine' },
+  { v: 'food', label: 'Food' },
+  { v: 'other', label: 'Other' },
+];
+const FOOD_REASONS: { v: FoodReason; label: string }[] = [
+  { v: 'regularly-consume', label: 'I eat it often' },
+  { v: 'allergy', label: 'Allergy' },
+  { v: 'dietary-restriction', label: 'Restriction' },
+];
 
 export function ProfilePanel({ profile, onChange }: Props) {
   const [pending, setPending] = useState<Medication | null>(null);
@@ -49,37 +63,20 @@ export function ProfilePanel({ profile, onChange }: Props) {
     onChange({ ...profile, [key]: (profile[key] as { id: string }[]).filter((x) => x.id !== id) });
 
   return (
-    <div className="panel">
-      <section>
-        <h2>Medications <span className="count">{profile.medications.length}</span></h2>
-        <ul className="items">
-          {profile.medications.map((m) => (
-            <li key={m.id}>
-              <span>
-                💊 <strong>{m.normalizedName ?? m.enteredName}</strong>
-                {m.strength && <> · {m.strength}</>}
-                {m.frequency && <> · {m.frequency}</>}
-                {m.source === 'prescription-scan' && <span className="tag">scanned</span>}
-              </span>
-              <button className="link" onClick={() => remove('medications', m.id)} aria-label={`Remove ${m.enteredName}`}>
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-
+    <>
+      <Section icon="pill" title="Medicines" count={profile.medications.length}>
         {pending ? (
-          <form className="stack" onSubmit={addMedication}>
-            <div className="muted">
-              {pending.normalizedName ?? pending.enteredName}
-              {pending.rxCui ? ` · RxCUI ${pending.rxCui}` : ' · not matched in RxNorm'}
+          <form className="pending" onSubmit={addMedication}>
+            <div className="pending-name">
+              <b>{pending.normalizedName ?? pending.enteredName}</b>
+              <small className="muted">{pending.rxCui ? `RxCUI ${pending.rxCui}` : 'Not matched in RxNorm'}</small>
             </div>
-            <input placeholder="Strength (e.g. 50 mg)" value={pending.strength ?? ''} onChange={(e) => setPending({ ...pending, strength: e.target.value || undefined })} />
-            <input placeholder="Frequency (e.g. twice daily)" value={pending.frequency ?? ''} onChange={(e) => setPending({ ...pending, frequency: e.target.value || undefined })} />
-            <input placeholder="Route (e.g. oral)" value={pending.route ?? ''} onChange={(e) => setPending({ ...pending, route: e.target.value || undefined })} />
-            <div className="row">
-              <button type="submit">Add medication</button>
-              <button type="button" className="link" onClick={() => setPending(null)}>Cancel</button>
+            <Field placeholder="Strength (e.g. 50 mg)" value={pending.strength} onChange={(v) => setPending({ ...pending, strength: v })} />
+            <Field placeholder="How often (e.g. twice daily)" value={pending.frequency} onChange={(v) => setPending({ ...pending, frequency: v })} />
+            <Field placeholder="Route (e.g. by mouth)" value={pending.route} onChange={(v) => setPending({ ...pending, route: v })} />
+            <div className="btn-row">
+              <button className="btn btn-jelly" type="submit">Add medicine</button>
+              <button className="btn btn-neu" type="button" onClick={() => setPending(null)}>Cancel</button>
             </div>
           </form>
         ) : (
@@ -95,50 +92,104 @@ export function ProfilePanel({ profile, onChange }: Props) {
             }
           />
         )}
-      </section>
+        <List>
+          {profile.medications.map((m) => (
+            <Row
+              key={m.id}
+              color={DOT.medication}
+              title={m.normalizedName ?? m.enteredName}
+              detail={[m.strength, m.frequency, m.route].filter(Boolean).join(' · ') || 'Dose not set'}
+              tag={m.source === 'prescription-scan' ? 'scanned' : undefined}
+              onRemove={() => remove('medications', m.id)}
+            />
+          ))}
+        </List>
+      </Section>
 
-      <section>
-        <h2>Allergies <span className="count">{profile.allergies.length}</span></h2>
-        <ul className="items">
+      <Section icon="shield" title="Allergies" count={profile.allergies.length}>
+        <form onSubmit={addAllergy}>
+          <label className="field-label" htmlFor="algIn">Add an allergy</label>
+          <div className="input">
+            <input id="algIn" placeholder="e.g. Penicillin, peanuts, latex" autoComplete="off" value={allergy.substance} onChange={(e) => setAllergy({ ...allergy, substance: e.target.value })} />
+            <button className="icon-btn" aria-label="Add allergy"><Icon name="plus" /></button>
+          </div>
+          <div className="sub-fields">
+            <Seg label="Allergy type" options={ALLERGY_TYPES} value={allergy.type} onChange={(type) => setAllergy({ ...allergy, type })} />
+            <Field placeholder="Reaction (optional)" value={allergy.reaction} onChange={(v) => setAllergy({ ...allergy, reaction: v ?? '' })} />
+          </div>
+        </form>
+        <List>
           {profile.allergies.map((a) => (
-            <li key={a.id}>
-              <span>⚠ <strong>{a.substance}</strong>{a.reaction && <> — {a.reaction}</>}</span>
-              <button className="link" onClick={() => remove('allergies', a.id)}>Remove</button>
-            </li>
+            <Row key={a.id} color={DOT.allergy} title={a.substance} detail={a.reaction ?? `${a.type} allergy`} onRemove={() => remove('allergies', a.id)} />
           ))}
-        </ul>
-        <form className="stack" onSubmit={addAllergy}>
-          <input placeholder="Allergy / substance" value={allergy.substance} onChange={(e) => setAllergy({ ...allergy, substance: e.target.value })} />
-          <select value={allergy.type} onChange={(e) => setAllergy({ ...allergy, type: e.target.value as AllergyType })}>
-            <option value="medication">Medication</option>
-            <option value="food">Food</option>
-            <option value="other">Other</option>
-          </select>
-          <input placeholder="Reaction (optional)" value={allergy.reaction} onChange={(e) => setAllergy({ ...allergy, reaction: e.target.value })} />
-          <button type="submit">Add allergy</button>
-        </form>
-      </section>
+        </List>
+      </Section>
 
-      <section>
-        <h2>Foods / substances <span className="count">{profile.foods.length}</span></h2>
-        <ul className="items">
-          {profile.foods.map((f) => (
-            <li key={f.id}>
-              <span>🍊 <strong>{f.name}</strong></span>
-              <button className="link" onClick={() => remove('foods', f.id)}>Remove</button>
-            </li>
-          ))}
-        </ul>
-        <form className="stack" onSubmit={addFood}>
-          <input placeholder="Food (e.g. Grapefruit)" value={food.name} onChange={(e) => setFood({ ...food, name: e.target.value })} />
-          <select value={food.reason} onChange={(e) => setFood({ ...food, reason: e.target.value as FoodReason })}>
-            <option value="regularly-consume">Regularly consume</option>
-            <option value="allergy">Allergy</option>
-            <option value="dietary-restriction">Dietary restriction</option>
-          </select>
-          <button type="submit">Add food</button>
+      <Section icon="leaf" title="Foods and substances" count={profile.foods.length}>
+        <form onSubmit={addFood}>
+          <label className="field-label" htmlFor="foodIn">Add a food</label>
+          <div className="input">
+            <input id="foodIn" placeholder="e.g. Grapefruit" autoComplete="off" value={food.name} onChange={(e) => setFood({ ...food, name: e.target.value })} />
+            <button className="icon-btn" aria-label="Add food"><Icon name="plus" /></button>
+          </div>
+          <div className="sub-fields">
+            <Seg label="Why it matters" options={FOOD_REASONS} value={food.reason} onChange={(reason) => setFood({ ...food, reason })} />
+          </div>
         </form>
-      </section>
+        <List>
+          {profile.foods.map((f) => (
+            <Row key={f.id} color={DOT.food} title={f.name} detail={FOOD_REASONS.find((r) => r.v === f.reason)?.label} onRemove={() => remove('foods', f.id)} />
+          ))}
+        </List>
+      </Section>
+    </>
+  );
+}
+
+function Section({ icon, title, count, children }: { icon: IconName; title: string; count: number; children: ReactNode }) {
+  return (
+    <div className="panel card">
+      <div className="panel-head">
+        <h3><Icon name={icon} size={20} />{title}</h3>
+        <span className="count-pill">{count}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function List({ children }: { children: ReactNode[] }) {
+  return children.length ? <div className="list">{children}</div> : null;
+}
+
+function Row({ color, title, detail, tag, onRemove }: { color: string; title: string; detail?: string; tag?: string; onRemove: () => void }) {
+  return (
+    <div className="row">
+      <span className="dot" style={{ background: color }} />
+      <div>
+        <b>{title}</b>
+        {tag && <span className="row-tag">{tag}</span>}
+        {detail && <small>{detail}</small>}
+      </div>
+      <button className="x" type="button" aria-label={`Remove ${title}`} onClick={onRemove}><Icon name="x" size={16} /></button>
+    </div>
+  );
+}
+
+function Field({ placeholder, value, onChange }: { placeholder: string; value?: string; onChange: (v: string | undefined) => void }) {
+  return (
+    <div className="input input-sm">
+      <input placeholder={placeholder} aria-label={placeholder} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />
+    </div>
+  );
+}
+
+function Seg<T extends string>({ label, options, value, onChange }: { label: string; options: { v: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <div className="seg" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.v} type="button" aria-pressed={value === o.v} onClick={() => onChange(o.v)}>{o.label}</button>
+      ))}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { RelationshipStatus, RelationshipType } from '@clearrx/shared';
+import type { RelationshipStatus, RelationshipType } from '@medifyrx/shared';
 
 // Layer 2 from the design doc: a SMALL, hand-verified set of relationships for the demo.
 //

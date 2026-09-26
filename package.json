@@ -1,14 +1,14 @@
 {
-  "name": "clearrx",
+  "name": "medifyrx",
   "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev:server": "npm run dev -w @clearrx/server",
-    "dev:web": "npm run dev -w @clearrx/web",
-    "dev:mobile": "npm run start -w @clearrx/mobile",
+    "dev:server": "npm run dev -w @medifyrx/server",
+    "dev:web": "npm run dev -w @medifyrx/web",
+    "dev:mobile": "npm run start -w @medifyrx/mobile",
     "dev": "concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },

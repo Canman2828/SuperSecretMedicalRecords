@@ -1,8 +1,8 @@
-# ClearRx — Agent Guide
+# medify.Rx — Agent Guide
 
 Read this first. It's the fast path to understanding the stack so you can be productive without spelunking.
 
-ClearRx is a **prescription-clarity** project: point a phone at a prescription label and it highlights the important fields live, taps explain them in plain language, and a web app maps drug–drug interactions. It's a hackathon-grade monorepo — synthetic patient data only, **not** HIPAA compliant.
+medify.Rx is a **prescription-clarity** project: point a phone at a prescription label and it highlights the important fields live, taps explain them in plain language, and a web app maps drug–drug interactions. It's a hackathon-grade monorepo — synthetic patient data only, **not** HIPAA compliant.
 
 ## Stack at a glance
 
@@ -10,10 +10,10 @@ npm **workspaces** monorepo. Requires **Node 20+**. TypeScript everywhere.
 
 | Workspace | Path | Stack | What it is |
 |---|---|---|---|
-| `@clearrx/mobile` | `apps/mobile` | Expo / React Native, expo-router | iOS app: live camera highlighter (on-device ML Kit OCR), tap-to-explain + TTS, basic profile |
-| `@clearrx/web` | `apps/web` | Vite + React 19, React Flow | Profile editor, RxNorm autocomplete, drug-interaction tree |
-| `@clearrx/server` | `apps/server` | Express + MongoDB (Mongoose), JWT, Zod | REST API: RxNorm/openFDA lookups, interaction checks, explanations, accounts |
-| `@clearrx/shared` | `packages/shared` | Plain TypeScript | Shared types, glossary, critical-field parser, API client — imported by all three |
+| `@medifyrx/mobile` | `apps/mobile` | Expo / React Native, expo-router | iOS app: live camera highlighter (on-device ML Kit OCR), tap-to-explain + TTS, basic profile |
+| `@medifyrx/web` | `apps/web` | Vite + React 19, React Flow, three.js | **medify.Rx** site: Compremedic (plain-language label reader + TTS), Prescriptive (profile editor, RxNorm autocomplete, interaction tree), Medictionary (`/api/explain`), sign-in |
+| `@medifyrx/server` | `apps/server` | Express + MongoDB (Mongoose), JWT, Zod | REST API: RxNorm/openFDA lookups, interaction checks, explanations, accounts |
+| `@medifyrx/shared` | `packages/shared` | Plain TypeScript | Shared types, glossary, critical-field parser, API client — imported by all three |
 
 `packages/shared` is the source of truth for cross-cutting logic. Change shared types there, not in copies. It exports from `types`, `glossary`, `criticalParser`, `api` (see `packages/shared/src/index.ts`).
 
@@ -84,7 +84,7 @@ Key files: `apps/mobile/src/scan/{useOcrLoop,coordinateMap,boxTracker}.ts`, `Hig
 
 - Cross-app types or parsing → `packages/shared/src/`
 - API behavior → `apps/server/src/routes/` then `services/`
-- Web UI / interaction tree → `apps/web/src/`
+- Web UI → `apps/web/src/`: hash routes in `router.ts`, one folder per page (`home/`, `compremedic/`, `prescriptive/`, `medictionary/`, `auth/`), tree in `graph/`. Styling: `design.css` is the medify.Rx design system (neumorphic tokens and components, ported verbatim), `styles.css` holds app-specific additions. Icons and logo are an SVG sprite in `index.html`, used via `<Icon name="…">`.
 - Camera/OCR/highlighting → `apps/mobile/src/scan/`
 
 The `README.md` has demo run-throughs, the iOS build walkthrough, and the pre-demo TODO list.

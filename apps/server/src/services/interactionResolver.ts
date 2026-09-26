@@ -4,7 +4,7 @@ import {
   type InteractionCheckResponse,
   type ProfileNode,
   type Relationship,
-} from '@clearrx/shared';
+} from '@medifyrx/shared';
 import { DEMO_RELATIONSHIPS, type DemoRelationship } from '../data/demoRelationships.js';
 
 type Matchable = { id: string; names: string[]; rxCui?: string };

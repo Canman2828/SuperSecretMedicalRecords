@@ -1,4 +1,4 @@
-import { parseCriticalFields, type Annotation, type OcrWord } from '@clearrx/shared';
+import { parseCriticalFields, type Annotation, type OcrWord } from '@medifyrx/shared';
 import TextRecognition from '@react-native-ml-kit/text-recognition';
 import type { CameraView } from 'expo-camera';
 import { File } from 'expo-file-system';

@@ -1,4 +1,4 @@
-import type { Annotation, BBox } from '@clearrx/shared';
+import type { Annotation, BBox } from '@medifyrx/shared';
 
 // Keeps highlights steady between OCR passes (design doc §14):
 // match by text + position, smooth coordinates, and survive brief misses.

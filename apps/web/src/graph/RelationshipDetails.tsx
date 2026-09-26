@@ -1,4 +1,5 @@
-import type { ProfileNode, Relationship } from '@clearrx/shared';
+import type { ProfileNode, Relationship } from '@medifyrx/shared';
+import { Icon } from '../ui/Icon';
 import { STATUS_STYLE } from './InteractionTree';
 
 interface Props {
@@ -12,8 +13,8 @@ export function RelationshipDetails({ relationship: r, nodes, onClose }: Props) 
   const s = STATUS_STYLE[r.status];
 
   return (
-    <aside className="details" role="dialog" aria-label="Relationship details">
-      <button className="link close" onClick={onClose} aria-label="Close">✕</button>
+    <aside className="details card" role="dialog" aria-label="Relationship details">
+      <button className="icon-btn close" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
       <h3 style={{ color: s.color }}>
         {s.icon} {r.title}
       </h3>
@@ -37,13 +38,13 @@ export function RelationshipDetails({ relationship: r, nodes, onClose }: Props) 
         {r.source.url && (
           <>
             {' · '}
-            <a href={r.source.url} target="_blank" rel="noreferrer">View source</a>
+            <a href={r.source.url} target="_blank" rel="noreferrer">View source label</a>
           </>
         )}
       </p>
       <p className="muted small">Checked {new Date(r.checkedAt).toLocaleString()}</p>
 
-      <p className="callout">
+      <p className="callout neu-in">
         Talk with a pharmacist or healthcare professional if you have questions about this.
       </p>
     </aside>

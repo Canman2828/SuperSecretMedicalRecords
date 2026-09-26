@@ -1,4 +1,4 @@
-import { lookupGlossary, type ExplainResponse } from '@clearrx/shared';
+import { lookupGlossary, type ExplainResponse } from '@medifyrx/shared';
 import { env } from '../env.js';
 
 // The AI contract from the design docs. The model only EXPLAINS a term;
