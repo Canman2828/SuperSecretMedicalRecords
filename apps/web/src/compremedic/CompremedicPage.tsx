@@ -66,6 +66,7 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
   // Documents the user saved from the phone app (Compremedic cloud save). Signed-in users only.
   const [saved, setSaved] = useState<MedDocument[]>([]);
   const [savedError, setSavedError] = useState<string | null>(null);
+  const [viewingSaved, setViewingSaved] = useState<MedDocument | null>(null);
   const [busy, setBusy] = useState<{ label: string; fraction?: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
@@ -452,18 +453,18 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
             <ul className="saved-list">
               {saved.map((d) => (
                 <li key={d.id} className="saved-item neu-in">
-                  <img className="saved-thumb" src={`data:${d.mimeType};base64,${d.imageBase64}`} alt="" />
-                  <div className="saved-meta">
-                    <span className="saved-type">{d.docType ?? 'Document'}</span>
-                    <span className="small muted">{new Date(d.createdAt).toLocaleDateString()}</span>
-                    <p className="saved-text">{d.plainText}</p>
-                  </div>
-                  <div className="saved-actions">
-                    <button className="btn btn-neu" style={{ height: 38 }} onClick={() => openSaved(d)}>Open</button>
-                    <button className="icon-btn close" aria-label="Delete document" onClick={() => deleteSaved(d.id)}>
-                      <Icon name="x" size={16} />
-                    </button>
-                  </div>
+                  <button className="saved-open" onClick={() => setViewingSaved(d)} aria-label={`View ${d.docType ?? 'document'}`}>
+                    <img className="saved-thumb" src={`data:${d.mimeType};base64,${d.imageBase64}`} alt="" />
+                    <span className="saved-meta">
+                      <span className="saved-type">{d.docType ?? 'Document'}</span>
+                      <span className="small muted">{new Date(d.createdAt).toLocaleDateString()}</span>
+                      <span className="saved-text">{d.plainText}</span>
+                    </span>
+                    <Icon name="arrow-right" size={16} />
+                  </button>
+                  <button className="icon-btn close" aria-label="Delete document" onClick={() => deleteSaved(d.id)}>
+                    <Icon name="x" size={16} />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -480,7 +481,80 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
           }}
         />
       )}
+
+      {viewingSaved && (
+        <SavedDocModal
+          doc={viewingSaved}
+          knownMedications={knownMedications}
+          onClose={() => setViewingSaved(null)}
+          onOpenInReader={() => {
+            openSaved(viewingSaved);
+            setViewingSaved(null);
+          }}
+          onDelete={() => {
+            deleteSaved(viewingSaved.id);
+            setViewingSaved(null);
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+/** Full view of a document saved from the phone: the whole photo plus its text, read aloud on demand. */
+function SavedDocModal({
+  doc,
+  knownMedications,
+  onClose,
+  onOpenInReader,
+  onDelete,
+}: {
+  doc: MedDocument;
+  knownMedications: string[];
+  onClose: () => void;
+  onOpenInReader: () => void;
+  onDelete: () => void;
+}) {
+  const origT = useMemo(
+    () => toTranscript(originalSegments(doc.originalText || doc.plainText, knownMedications)),
+    [doc.originalText, doc.plainText, knownMedications],
+  );
+  const plainT = useMemo(() => toTranscript(originalSegments(doc.plainText, knownMedications)), [doc.plainText, knownMedications]);
+  const origTrack = useSpeechTrack(origT);
+  const plainTrack = useSpeechTrack(plainT);
+
+  return (
+    <div className="doc-backdrop" role="dialog" aria-modal="true" aria-label="Saved document" onClick={onClose}>
+      <div className="doc-viewer card" onClick={(e) => e.stopPropagation()}>
+        <div className="panel-head">
+          <h3><Icon name="file" size={20} />{doc.docType ?? 'Document'}</h3>
+          <button className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" /></button>
+        </div>
+        <div className="doc-scroll">
+          <img className="doc-image" src={`data:${doc.mimeType};base64,${doc.imageBase64}`} alt="Saved document" />
+          <p className="small muted">Saved {new Date(doc.createdAt).toLocaleString()}</p>
+
+          {doc.originalText && (
+            <div className="pane">
+              <span className="field-label" style={{ margin: 0 }}>Original text</span>
+              <p className="pane-text doc-orig">{doc.originalText}</p>
+              <Player label="Listen to the original text" track={origTrack} />
+            </div>
+          )}
+
+          <div className="pane">
+            <span className="field-label" style={{ margin: 0 }}>Simplified text</span>
+            <p className="pane-text">{doc.plainText}</p>
+            <Player label="Listen to the simplified text" track={plainTrack} />
+          </div>
+
+          <div className="btn-row">
+            <button className="btn btn-jelly" onClick={onOpenInReader}>Open in reader</button>
+            <button className="btn btn-neu" onClick={onDelete}>Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
