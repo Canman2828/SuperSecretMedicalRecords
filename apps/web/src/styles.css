@@ -111,6 +111,8 @@ button:disabled, .btn:disabled, .chip:disabled { opacity: 0.5; cursor: not-allow
 /* ---------- sign in ---------- */
 /* design.css sets .auth-card label{display:block}; the checkbox label must stay inline */
 .auth-card .check { display: inline-flex; }
+/* The message line is usually empty; tighten the space it adds between Sign In and "Create an account". */
+.auth-card .auth-msg { margin-block: -10px; }
 
 /* ---------- medictionary: chat assistant ---------- */
 .chat { display: flex; flex-direction: column; gap: 16px; margin-top: 30px; }

@@ -1,12 +1,9 @@
 import bcrypt from 'bcryptjs';
-import { createHash, randomBytes } from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
-import { env } from '../env.js';
 import { requireDb, signToken } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { User } from '../models/User.js';
-import { sendPasswordReset } from '../services/mailer.js';
 
 export const authRouter = Router();
 authRouter.use(requireDb);
@@ -15,6 +12,7 @@ const registerSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.email(),
   password: z.string().min(8).max(200),
+  securityAnswer: z.string().trim().min(1).max(100),
 });
 
 const loginSchema = z.object({
@@ -22,21 +20,29 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const forgotSchema = z.object({ email: z.email() });
-
 const resetSchema = z.object({
-  token: z.string().min(1).max(200),
+  email: z.email(),
+  securityAnswer: z.string().trim().min(1).max(100),
   password: z.string().min(8).max(200),
 });
 
-const RESET_TTL_MS = 30 * 60 * 1000;
-const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
+// Security-question resets are guessable, so wrong answers lock the account's resets for a while.
+const MAX_RESET_ATTEMPTS = 5;
+const RESET_LOCK_MS = 15 * 60 * 1000;
+
+// "Jamie ", "jamie" and "JAMIE" all count as the same answer.
+const normalizeAnswer = (answer: string) => answer.trim().toLowerCase().replace(/\s+/g, ' ');
 
 authRouter.post('/register', validateBody(registerSchema), async (req, res) => {
-  const { name, email, password } = req.body as z.infer<typeof registerSchema>;
+  const { name, email, password, securityAnswer } = req.body as z.infer<typeof registerSchema>;
   if (await User.exists({ email })) return res.status(409).json({ error: 'Email already registered' });
 
-  const user = await User.create({ name, email, passwordHash: await bcrypt.hash(password, 10) });
+  const user = await User.create({
+    name,
+    email,
+    passwordHash: await bcrypt.hash(password, 10),
+    securityAnswerHash: await bcrypt.hash(normalizeAnswer(securityAnswer), 10),
+  });
   res.status(201).json({ token: signToken(user.id) });
 });
 
@@ -49,30 +55,34 @@ authRouter.post('/login', validateBody(loginSchema), async (req, res) => {
   res.json({ token: signToken(user.id) });
 });
 
-// Always answers the same way, so this can't be used to find out which emails have accounts.
-authRouter.post('/forgot-password', validateBody(forgotSchema), async (req, res) => {
-  const { email } = req.body as z.infer<typeof forgotSchema>;
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (user) {
-    const token = randomBytes(32).toString('hex');
-    user.set({ resetTokenHash: hashToken(token), resetTokenExpires: new Date(Date.now() + RESET_TTL_MS) });
-    await user.save();
-    try {
-      await sendPasswordReset(user.email, `${env.appUrl}/#reset?token=${token}`);
-    } catch (err) {
-      console.error('Password reset email failed:', err instanceof Error ? err.message : err);
-    }
-  }
-  res.json({ ok: true });
-});
-
-// One-time use: the token is cleared on success. Signs the user in with the new password.
+// Reset by answering "Who is your favorite cousin?". The same error is returned for an unknown
+// email, an account without an answer, and a wrong answer, so this can't reveal who has an account.
 authRouter.post('/reset-password', validateBody(resetSchema), async (req, res) => {
-  const { token, password } = req.body as z.infer<typeof resetSchema>;
-  const user = await User.findOne({ resetTokenHash: hashToken(token), resetTokenExpires: { $gt: new Date() } });
-  if (!user) return res.status(400).json({ error: 'Reset link is invalid or has expired' });
+  const { email, securityAnswer, password } = req.body as z.infer<typeof resetSchema>;
+  const user = await User.findOne({ email: email.toLowerCase() }).select(
+    '+securityAnswerHash +resetAttempts +resetLockedUntil',
+  );
 
-  user.set({ passwordHash: await bcrypt.hash(password, 10), resetTokenHash: undefined, resetTokenExpires: undefined });
+  if (user?.resetLockedUntil && user.resetLockedUntil > new Date()) {
+    return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+  }
+
+  const correct =
+    !!user?.securityAnswerHash && (await bcrypt.compare(normalizeAnswer(securityAnswer), user.securityAnswerHash));
+  if (!user || !correct) {
+    if (user) {
+      const attempts = (user.resetAttempts ?? 0) + 1;
+      const locked = attempts >= MAX_RESET_ATTEMPTS;
+      user.set({
+        resetAttempts: locked ? 0 : attempts,
+        resetLockedUntil: locked ? new Date(Date.now() + RESET_LOCK_MS) : undefined,
+      });
+      await user.save();
+    }
+    return res.status(401).json({ error: 'Email or answer does not match' });
+  }
+
+  user.set({ passwordHash: await bcrypt.hash(password, 10), resetAttempts: 0, resetLockedUntil: undefined });
   await user.save();
   res.json({ token: signToken(user.id) });
 });

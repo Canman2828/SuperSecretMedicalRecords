@@ -17,7 +17,6 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.10.2",
-    "nodemailer": "^10.0.10",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -25,7 +24,6 @@
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.18.0",
-    "@types/nodemailer": "^8.0.2",
     "tsx": "^4.23.15"
   }
 }
