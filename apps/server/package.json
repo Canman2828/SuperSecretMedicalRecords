@@ -9,6 +9,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@google/genai": "^2.24.0",
     "@medifyrx/shared": "*",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",

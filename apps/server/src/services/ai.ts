@@ -1,5 +1,12 @@
+import { ApiError, GoogleGenAI } from '@google/genai';
 import { lookupGlossary, type ExplainResponse } from '@medifyrx/shared';
 import { env } from '../env.js';
+
+// Aliases that track Google's current Flash models; the lite model is a fallback
+// for when the main one is overloaded (Gemini returns 503). Matches services/chat.ts.
+const MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+
+const client = env.aiApiKey ? new GoogleGenAI({ apiKey: env.aiApiKey }) : null;
 
 // The AI contract from the design docs. The model only EXPLAINS a term;
 // it never decides safety, invents interactions, or restates dosages.
@@ -41,10 +48,32 @@ export async function explainTerm(term: string, context?: string): Promise<Expla
   return { term, ...parsed, source: 'ai' };
 }
 
-async function callModel(_term: string, _context?: string): Promise<string> {
-  // TODO(phase 8): call your AI provider here with EXPLAIN_SYSTEM_PROMPT.
-  // Keep the key server-side; never ship it in the web or mobile bundle.
-  throw new Error('AI provider not configured');
+// Calls Gemini for a single plain-language explanation, returning the raw JSON text
+// (parsed/guarded by the caller). The key stays server-side; it is never sent to the
+// web or mobile bundle.
+async function callModel(term: string, context?: string): Promise<string> {
+  if (!client) throw new Error('AI provider not configured');
+
+  const userText = context ? `Term: ${term}\nContext: ${context}` : `Term: ${term}`;
+
+  for (const [i, model] of MODELS.entries()) {
+    try {
+      const res = await client.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text: userText }] }],
+        config: {
+          systemInstruction: EXPLAIN_SYSTEM_PROMPT,
+          responseMimeType: 'application/json',
+          maxOutputTokens: 512,
+        },
+      });
+      return res.text ?? '';
+    } catch (err) {
+      const overloaded = err instanceof ApiError && err.status === 503;
+      if (!overloaded || i === MODELS.length - 1) throw err;
+    }
+  }
+  throw new Error('unreachable');
 }
 
 function safeParse(raw: string): { simpleDefinition: string; needsVerification: boolean } | null {

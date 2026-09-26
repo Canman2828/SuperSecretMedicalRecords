@@ -57,9 +57,19 @@ export function useOcrLoop({ cameraRef, viewSize, knownMedications, enabled }: O
           ),
         );
 
+        // ML Kit returns boxes in the display-upright (portrait) orientation, but iOS
+        // captures in landscape sensor pixels, so photo.width/height can be transposed
+        // relative to the boxes. If the photo's orientation doesn't match the preview's,
+        // swap the dimensions so the cover-scale math lines up. (Fixes "highlights land
+        // in the corner / on the air".)
+        const photoIsLandscape = photo.width > photo.height;
+        const viewIsLandscape = viewSize.width > viewSize.height;
+        const [imgW, imgH] =
+          photoIsLandscape !== viewIsLandscape ? [photo.height, photo.width] : [photo.width, photo.height];
+
         const detections = parseCriticalFields(words, medsRef.current).map((a) => ({
           ...a,
-          bbox: imageBoxToScreenBox(a.bbox, photo.width, photo.height, viewSize.width, viewSize.height),
+          bbox: imageBoxToScreenBox(a.bbox, imgW, imgH, viewSize.width, viewSize.height),
         }));
 
         setAnnotations(tracker.current.update(detections));
