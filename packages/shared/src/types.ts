@@ -112,7 +112,11 @@ export type AnnotationCategory =
   | 'medication'
   | 'critical'
   | 'warning'
-  | 'consent';
+  | 'consent'
+  /** Where the patient signs (signature lines, "X ____"). */
+  | 'signature'
+  /** When: dates, clock times, times of day. Shown exactly as printed. */
+  | 'timing';
 
 export interface Annotation {
   id: string;
@@ -130,6 +134,29 @@ export interface Annotation {
 export interface ExplainRequest {
   term: string;
   context?: string;
+}
+
+/** Plain-language rewrite of a scanned document ("AI translates but doesn't modify important things"). */
+export interface TranslateRequest {
+  text: string;
+  /** Target language name, e.g. "Spanish". Default: plain English. */
+  language?: string;
+  /** Extra medication names to protect (e.g. from the profile). */
+  knownMedications?: string[];
+}
+
+/** A run of text. `lock` = copied exactly from the original, never reworded or translated. */
+export interface TranslateSegment {
+  text: string;
+  lock?: boolean;
+  /** Glossary meaning of a locked abbreviation, shown beside it. */
+  meaning?: string;
+}
+
+export interface TranslateResponse {
+  segments: TranslateSegment[];
+  /** 'none' = AI unavailable or its output failed the protected-value check; caller should fall back. */
+  source: 'ai' | 'none';
 }
 
 export interface ExplainResponse {

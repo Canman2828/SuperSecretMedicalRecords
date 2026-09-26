@@ -5,6 +5,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProfile } from '../../src/profile/ProfileContext';
+import { ArPanels } from '../../src/scan/ArPanels';
 import { ExplanationSheet } from '../../src/scan/ExplanationSheet';
 import { HighlightLayer } from '../../src/scan/HighlightLayer';
 import { useOcrLoop } from '../../src/scan/useOcrLoop';
@@ -36,7 +37,7 @@ export default function ScanScreen() {
     [profile.medications],
   );
 
-  const { annotations } = useOcrLoop({
+  const { annotations, lastText, docBox } = useOcrLoop({
     cameraRef,
     viewSize,
     knownMedications,
@@ -76,14 +77,29 @@ export default function ScanScreen() {
 
       <HighlightLayer annotations={annotations} onPress={setSelected} />
 
+      <ArPanels
+        annotations={annotations}
+        docBox={docBox}
+        viewSize={viewSize}
+        insets={insets}
+        frozen={paused}
+        text={lastText}
+        knownMedications={knownMedications}
+        onSelect={setSelected}
+      />
+
       <View style={[styles.hint, { top: insets.top + 8 }]} pointerEvents="none">
         <Text style={styles.hintText}>
-          {annotations.length ? 'Tap a highlight to learn more' : 'Center the prescription and hold steady'}
+          {paused
+            ? 'Original and plain words, side by side'
+            : annotations.length
+              ? 'Tap a highlight to learn more'
+              : 'Center the prescription or form and hold steady'}
         </Text>
       </View>
 
       <Pressable style={[styles.pause, { bottom: 16 }]} onPress={() => setPaused((p) => !p)}>
-        <Text style={styles.pauseText}>{paused ? '▶ Resume' : '⏸ Freeze'}</Text>
+        <Text style={styles.pauseText}>{paused ? '▶ Resume' : '⏸ Freeze & explain'}</Text>
       </Pressable>
 
       <ExplanationSheet

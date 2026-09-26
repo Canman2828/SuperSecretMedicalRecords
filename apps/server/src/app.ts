@@ -7,6 +7,7 @@ import { drugsRouter } from './routes/drugs.js';
 import { explainRouter } from './routes/explain.js';
 import { interactionsRouter } from './routes/interactions.js';
 import { profileRouter } from './routes/profile.js';
+import { translateRouter } from './routes/translate.js';
 
 export function createApp() {
   const app = express();
@@ -26,6 +27,7 @@ export function createApp() {
   app.use('/api/explain', explainRouter);
   app.use('/api/interactions', interactionsRouter);
   app.use('/api/profile', profileRouter);
+  app.use('/api/translate', translateRouter);
 
   const onError: ErrorRequestHandler = (err, _req, res, _next) => {
     const status = typeof err?.status === 'number' ? err.status : 500;

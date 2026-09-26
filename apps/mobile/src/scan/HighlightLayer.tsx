@@ -9,6 +9,8 @@ export const CATEGORY_STYLE: Record<AnnotationCategory, { color: string; icon: s
   abbreviation: { color: '#2563eb', icon: 'Ab', label: 'Abbreviation' },
   jargon: { color: '#7c3aed', icon: '?', label: 'Medical term' },
   consent: { color: '#475569', icon: '§', label: 'Consent term' },
+  signature: { color: '#db2777', icon: '✍', label: 'Sign here' },
+  timing: { color: '#0284c7', icon: '🕒', label: 'When' },
 };
 
 interface Props {

@@ -15,6 +15,24 @@ const TIME_NOUNS = new Set(['HOUR', 'HOURS', 'HR', 'HRS', 'DAY', 'DAYS', 'WEEK',
 const FREQUENCY_NOUNS = new Set(['TIME', 'TIMES']); // "3 times daily"
 const NEGATIONS = new Set(['DO NOT', 'DONT', 'NEVER', 'AVOID', 'NOT']);
 const NUMBER_RE = /^\d+(\.\d+)?$/;
+
+// Signature fields ("Patient Signature ______", "X ______", "Initials").
+const SIGNATURE_WORDS = new Set(['SIGNATURE', 'SIGNATURES', 'SIGNED', 'INITIALS']);
+const BLANK_LINE_RE = /^[xX]?_{3,}$/;
+
+// "When": dates, clock times, times of day.
+const DATE_RE = /^(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2})$/;
+const CLOCK_RE = /^\d{1,2}:\d{2}(AM|PM)?$/i;
+const MERIDIEM = new Set(['AM', 'PM']);
+const MONTHS = new Set(['JAN', 'JANUARY', 'FEB', 'FEBRUARY', 'MAR', 'MARCH', 'APR', 'APRIL', 'MAY', 'JUN', 'JUNE', 'JUL', 'JULY', 'AUG', 'AUGUST', 'SEP', 'SEPT', 'SEPTEMBER', 'OCT', 'OCTOBER', 'NOV', 'NOVEMBER', 'DEC', 'DECEMBER']);
+const TIME_OF_DAY = new Set(['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT', 'NIGHTLY', 'BEDTIME', 'NOON', 'MIDNIGHT', 'BREAKFAST', 'LUNCH', 'DINNER', 'MEALS', 'MEAL']);
+// Pulled in before a time of day so "at bedtime" / "before breakfast" / "in the morning" stay together.
+const TIME_LEADS = new Set(['AT', 'IN', 'THE', 'WITH', 'BEFORE', 'AFTER', 'EVERY', 'EACH']);
+const DATE_LABELS = new Set(['DATE', 'DATED', 'EXP', 'EXPIRES', 'EXPIRATION', 'FILLED', 'DISCARD']);
+
+/** Strip trailing punctuation OCR tends to attach ("12/01/2026," -> "12/01/2026"). */
+const bare = (s: string) => s.replace(/[.,;:)]+$/, '');
+const isDateAt = (words: OcrWord[], j: number) => j < words.length && DATE_RE.test(bare(words[j].text));
 const NUMBER_WITH_UNIT_RE = /^(\d+(\.\d+)?)(MG|MCG|G|ML|L|IU|MEQ|%)$/;
 
 /** Below this, the UI shows "Not confident — verify the printed text". */
@@ -62,12 +80,68 @@ export function parseCriticalFields(
   const meds = new Set(knownMedications.map(normalizeToken));
   const out: Annotation[] = [];
   let i = 0;
+  let claimed = 0; // words before this index already belong to an annotation
+  let emitted = 0;
+
+  const emit = (span: OcrWord[], category: AnnotationCategory, immutable: boolean, start: number) => {
+    out.push(makeAnnotation(span, category, immutable));
+    i = start + span.length;
+  };
 
   while (i < words.length) {
+    if (out.length !== emitted) {
+      emitted = out.length;
+      claimed = i;
+    }
     const w = words[i];
     const t = normalizeToken(w.text);
     const next = words[i + 1];
     const nextT = next ? normalizeToken(next.text) : '';
+
+    // --- Signature: "Signature ______", "X ______", a bare blank line ---
+    if (SIGNATURE_WORDS.has(t) || (t === 'SIGN' && nextT === 'HERE')) {
+      const len = t === 'SIGN' || (next && BLANK_LINE_RE.test(next.text)) ? 2 : 1;
+      emit(words.slice(i, i + len), 'signature', false, i);
+      continue;
+    }
+    if (BLANK_LINE_RE.test(w.text) || (t === 'X' && next && BLANK_LINE_RE.test(next.text))) {
+      emit(words.slice(i, i + (t === 'X' ? 2 : 1)), 'signature', false, i);
+      continue;
+    }
+
+    // --- When: dates and times, shown exactly as printed ---
+    // "Date ______" is a field to fill in, not a printed value
+    if (DATE_LABELS.has(t) && next && BLANK_LINE_RE.test(next.text)) {
+      emit([w, next], 'timing', false, i);
+      continue;
+    }
+    // "Date: 12/01/2026", "Exp 03/2027" labels keep their value together
+    if (DATE_LABELS.has(t) && isDateAt(words, i + 1)) {
+      emit([w, next], 'timing', true, i);
+      continue;
+    }
+    if (isDateAt(words, i)) {
+      emit([w], 'timing', true, i);
+      continue;
+    }
+    // "Jan 5, 2026", "March 3"
+    if (MONTHS.has(t) && next && /^\d{1,2}(st|nd|rd|th)?,?$/i.test(next.text)) {
+      const year = words[i + 2] && /^\d{4}$/.test(bare(words[i + 2].text)) ? 1 : 0;
+      emit(words.slice(i, i + 2 + year), 'timing', true, i);
+      continue;
+    }
+    // "8:00", "8:00 AM", "8 PM"
+    if (CLOCK_RE.test(bare(w.text)) || (NUMBER_RE.test(w.text) && MERIDIEM.has(nextT))) {
+      emit(MERIDIEM.has(nextT) ? [w, next] : [w], 'timing', true, i);
+      continue;
+    }
+    // "at bedtime", "in the morning", "before breakfast"
+    if (TIME_OF_DAY.has(t)) {
+      let start = i;
+      while (start - 1 >= claimed && start > i - 2 && TIME_LEADS.has(normalizeToken(words[start - 1].text))) start -= 1;
+      emit(words.slice(start, i + 1), 'timing', true, start);
+      continue;
+    }
 
     // "500mg"
     if (NUMBER_WITH_UNIT_RE.test(w.text.toUpperCase().replace(/\s/g, ''))) {

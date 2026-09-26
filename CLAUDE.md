@@ -53,6 +53,7 @@ GET    /api/health
 GET    /api/drugs/search?q=<name>       RxNorm → ingredient + RxCUI
 POST   /api/interactions/check          profile → nodes + sourced edges (guest OK)
 POST   /api/explain                     glossary first, AI last
+POST   /api/translate                   plain-language/translated rewrite; protected values masked + restored (guest OK)
 POST   /api/chat                        medication Q&A, streams SSE; stateless (guest OK, 503 without AI_API_KEY)
 POST   /api/auth/register | /login      → JWT
 GET    /api/profile                     (auth) saved profile
@@ -60,7 +61,7 @@ PUT    /api/profile                     (auth) save — only after explicit opt-
 DELETE /api/profile                     (auth) wipe saved health info
 ```
 
-Server layout: `routes/` (HTTP) → `services/` (`rxnorm.ts`, `openfda.ts`, `interactionResolver.ts`, `ai.ts`, `chat.ts`) → `models/` (Mongoose). `middleware/auth.ts` guards authed routes; `schemas.ts` + `middleware/validate.ts` do Zod validation.
+Server layout: `routes/` (HTTP) → `services/` (`rxnorm.ts`, `openfda.ts`, `interactionResolver.ts`, `ai.ts`, `chat.ts`, `translate.ts`) → `models/` (Mongoose). `middleware/auth.ts` guards authed routes; `schemas.ts` + `middleware/validate.ts` do Zod validation.
 
 ## How the mobile highlighter works
 
@@ -68,9 +69,14 @@ Server layout: `routes/` (HTTP) → `services/` (`rxnorm.ts`, `openfda.ts`, `int
 every ~800ms: low-res still → ML Kit OCR (on device) → words + boxes
   → parseCriticalFields (shared, no AI) → map to screen coords → BoxTracker smoothing
   → HighlightLayer → tap → ExplanationSheet (original text always shown)
+  → ArPanels: glass panels anchored beside the paper (union of OCR boxes)
+      live:   Key details — sign here / when / dosage
+      frozen: Original | Plain words side by side, TTS for both, language toggle (/api/translate)
 ```
 
-Key files: `apps/mobile/src/scan/{useOcrLoop,coordinateMap,boxTracker}.ts`, `HighlightLayer.tsx`, `ExplanationSheet.tsx`, and `packages/shared/src/criticalParser.ts`. If highlights look offset, check `coordinateMap.ts` first (preview is cover-scaled). Photos are discarded right after OCR.
+The parser also tags `signature` (signature lines, "X ____") and `timing` (dates, clock times, "at bedtime"). The AI rewrite never sees protected values: `packages/shared/src/protect.ts` swaps them for `[[n]]` placeholders and rejects output that drops/duplicates one or adds digits; the client falls back to the glossary-only version.
+
+Key files: `apps/mobile/src/scan/{useOcrLoop,coordinateMap,boxTracker}.ts`, `HighlightLayer.tsx`, `ArPanels.tsx`, `ExplanationSheet.tsx`, and `packages/shared/src/criticalParser.ts`. If highlights look offset, check `coordinateMap.ts` first (preview is cover-scaled). Photos are discarded right after OCR.
 
 ## Conventions & gotchas
 

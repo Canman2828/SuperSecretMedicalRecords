@@ -78,3 +78,9 @@ export const explainSchema = z.object({
   term: z.string().min(1).max(100),
   context: z.string().max(1000).optional(),
 });
+
+export const translateSchema = z.object({
+  text: z.string().trim().min(1).max(4000),
+  language: z.string().trim().min(1).max(40).optional(),
+  knownMedications: z.array(z.string().min(1).max(200)).max(100).optional(),
+});

@@ -29,7 +29,8 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
     setNeedsVerification(false);
     setStrength(suggestedStrength ?? '');
     // Glossary miss -> ask the server (glossary first, AI last). Never for exact-text dosing spans.
-    if (!a.explanation && a.category !== 'critical' && a.category !== 'medication') {
+    const fixedText = a.category === 'critical' || a.category === 'medication' || a.category === 'signature' || a.category === 'timing';
+    if (!a.explanation && !fixedText) {
       api
         .explain({ term: a.sourceText })
         .then((r) => {
@@ -65,6 +66,14 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
         {a.category === 'critical' ? (
           <Text style={styles.body}>
             This is a dosing value. It's shown exactly as printed. Follow your label or ask your pharmacist.
+          </Text>
+        ) : a.category === 'signature' ? (
+          <Text style={styles.body}>
+            This is where you sign or fill something in. Read the whole form first, and ask any questions before you sign.
+          </Text>
+        ) : a.category === 'timing' ? (
+          <Text style={styles.body}>
+            This tells you when. It's shown exactly as printed. Check it against your label or ask your pharmacist.
           </Text>
         ) : a.category === 'medication' ? (
           <>

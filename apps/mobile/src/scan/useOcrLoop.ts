@@ -1,4 +1,4 @@
-import { parseCriticalFields, type Annotation, type OcrWord } from '@medifyrx/shared';
+import { parseCriticalFields, type Annotation, type BBox, type OcrWord } from '@medifyrx/shared';
 import TextRecognition from '@react-native-ml-kit/text-recognition';
 import type { CameraView } from 'expo-camera';
 import { File } from 'expo-file-system';
@@ -7,6 +7,23 @@ import { BoxTracker } from './boxTracker';
 import { imageBoxToScreenBox } from './coordinateMap';
 
 const OCR_INTERVAL_MS = 800; // design doc: 500–1000 ms, never every frame
+const DOC_ALPHA = 0.35; // same smoothing as BoxTracker
+const DOC_KEEP_ALIVE_MS = 900;
+
+const union = (boxes: BBox[]): BBox | null => {
+  if (!boxes.length) return null;
+  const x1 = Math.min(...boxes.map((b) => b.x));
+  const y1 = Math.min(...boxes.map((b) => b.y));
+  const x2 = Math.max(...boxes.map((b) => b.x + b.width));
+  const y2 = Math.max(...boxes.map((b) => b.y + b.height));
+  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+};
+const lerpBox = (a: BBox, b: BBox): BBox => ({
+  x: a.x + (b.x - a.x) * DOC_ALPHA,
+  y: a.y + (b.y - a.y) * DOC_ALPHA,
+  width: a.width + (b.width - a.width) * DOC_ALPHA,
+  height: a.height + (b.height - a.height) * DOC_ALPHA,
+});
 
 interface Options {
   cameraRef: RefObject<CameraView | null>;
@@ -23,6 +40,9 @@ interface Options {
 export function useOcrLoop({ cameraRef, viewSize, knownMedications, enabled }: Options) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [lastText, setLastText] = useState('');
+  /** Screen-space outline of all recognized text: where the document is. AR panels anchor to it. */
+  const [docBox, setDocBox] = useState<BBox | null>(null);
+  const docSeen = useRef(0);
   const busy = useRef(false);
   const tracker = useRef(new BoxTracker());
   const medsRef = useRef(knownMedications);
@@ -72,8 +92,13 @@ export function useOcrLoop({ cameraRef, viewSize, knownMedications, enabled }: O
           bbox: imageBoxToScreenBox(a.bbox, imgW, imgH, viewSize.width, viewSize.height),
         }));
 
-        setAnnotations(tracker.current.update(detections));
-        setLastText(result.text);
+        const now = Date.now();
+        const doc = union(words.map((w) => imageBoxToScreenBox(w.bbox, imgW, imgH, viewSize.width, viewSize.height)));
+        if (doc) docSeen.current = now;
+        setDocBox((prev) => (doc ? (prev ? lerpBox(prev, doc) : doc) : now - docSeen.current < DOC_KEEP_ALIVE_MS ? prev : null));
+
+        setAnnotations(tracker.current.update(detections, now));
+        if (result.text.trim()) setLastText(result.text);
       } catch (err) {
         console.warn('OCR pass failed', err);
       } finally {
@@ -96,5 +121,5 @@ export function useOcrLoop({ cameraRef, viewSize, knownMedications, enabled }: O
     };
   }, [enabled, viewSize.width, viewSize.height, cameraRef]);
 
-  return { annotations, lastText };
+  return { annotations, lastText, docBox };
 }

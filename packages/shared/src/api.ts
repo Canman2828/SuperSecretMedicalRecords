@@ -7,6 +7,8 @@ import type {
   InteractionCheckRequest,
   InteractionCheckResponse,
   Profile,
+  TranslateRequest,
+  TranslateResponse,
 } from './types';
 
 /**
@@ -44,6 +46,10 @@ export function createApiClient(baseUrl: string, getToken?: () => string | null 
 
     explain: (body: ExplainRequest) =>
       request<ExplainResponse>('/api/explain', { method: 'POST', body: JSON.stringify(body) }),
+
+    /** Plain-language / translated version of scanned text. Protected values come back unchanged. */
+    translate: (body: TranslateRequest) =>
+      request<TranslateResponse>('/api/translate', { method: 'POST', body: JSON.stringify(body) }),
 
     register: (body: { name: string; email: string; password: string }) =>
       request<{ token: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),

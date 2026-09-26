@@ -1,6 +1,7 @@
 export * from './types';
 export * from './glossary';
 export * from './criticalParser';
+export * from './protect';
 export * from './api';
 
 export const NO_RESULT_DISCLAIMER =
