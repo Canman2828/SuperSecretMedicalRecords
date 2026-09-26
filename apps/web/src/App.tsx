@@ -7,7 +7,7 @@ import { HomePage } from './home/HomePage';
 import { Footer, Nav } from './layout/Shell';
 import { MedictionaryPage } from './medictionary/MedictionaryPage';
 import { EMPTY_PROFILE, PrescriptivePage } from './prescriptive/PrescriptivePage';
-import { useHashRoute } from './router';
+import { hashParam, useHashRoute } from './router';
 
 export function App() {
   const page = useHashRoute();
@@ -40,8 +40,10 @@ export function App() {
         {page === 'compremedic' && <CompremedicPage knownMedications={knownMedications} />}
         {page === 'prescriptive' && <PrescriptivePage profile={profile} onProfileChange={setProfile} loggedIn={loggedIn} />}
         {page === 'medictionary' && <MedictionaryPage profile={profile} />}
-        {page === 'signin' && (
+        {(page === 'signin' || page === 'reset') && (
           <SignInPage
+            key={page}
+            resetToken={page === 'reset' ? hashParam('token') : null}
             onSignedIn={(token, remember) => {
               setToken(token, remember);
               setLoggedIn(true);

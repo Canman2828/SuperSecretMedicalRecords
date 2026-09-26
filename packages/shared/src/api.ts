@@ -63,6 +63,14 @@ export function createApiClient(baseUrl: string, getToken?: () => string | null 
     login: (body: { email: string; password: string }) =>
       request<{ token: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
+    /** Emails a reset link if the account exists. Resolves the same way either way. */
+    forgotPassword: (email: string) =>
+      request<{ ok: true }>('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+    /** Sets a new password from an emailed reset link and signs the user in. */
+    resetPassword: (body: { token: string; password: string }) =>
+      request<{ token: string }>('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(body) }),
+
     getProfile: () => request<Profile>('/api/profile'),
 
     /** Only call this after the user explicitly opts in to saving. */

@@ -47,6 +47,9 @@ const userSchema = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true, select: false },
+    // Password reset: only a SHA-256 hash of the emailed token is stored, so a database leak can't be used to reset.
+    resetTokenHash: { type: String, select: false, index: { sparse: true } },
+    resetTokenExpires: { type: Date, select: false },
     profile: {
       medications: { type: [medicationSchema], default: [] },
       allergies: { type: [allergySchema], default: [] },
