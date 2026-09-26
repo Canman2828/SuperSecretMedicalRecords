@@ -17,6 +17,7 @@ const STATUS_STYLE: Record<RelationshipStatus, { icon: string; label: string; co
   warning: { icon: '!', label: 'Label warning', color: '#8A6A2E' },
   contraindication: { icon: '⊘', label: 'Contraindication', color: '#8A3F4A' },
   'possible-allergy-match': { icon: '△', label: 'Possible allergy match', color: '#665C82' },
+  complementary: { icon: '✓', label: 'Often paired', color: '#3E7A57' },
 };
 
 // Synthetic demo patient "Alex" (mirrors the website). Never real patient data.

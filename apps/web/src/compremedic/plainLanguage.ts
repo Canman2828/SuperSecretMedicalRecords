@@ -1,6 +1,9 @@
 import { parseCriticalFields, type Annotation, type OcrWord } from '@medifyrx/shared';
 
-/** A run of text. `lock` = copied exactly from the original and never reworded. */
+/**
+ * A run of text. `lock` = copied exactly from the original and never reworded.
+ * Same shape as the server's TranslateSegment, so AI rewrites and this glossary fallback render alike.
+ */
 export interface Segment {
   text: string;
   lock?: boolean;
@@ -45,7 +48,7 @@ const joined = (tokens: Token[]) => tokens.map((t, i) => t.text + (i < tokens.le
 
 /** Split trailing punctuation off so "DAYS." locks "DAYS" and leaves the full stop as plain text. */
 function splitTrailing(s: string): [string, string] {
-  const m = s.match(/^(.*?)([.,;:!?)]*)$/)!;
+  const m = s.match(/^(.*?)([.,;:!?)]*)$/s)!;
   return [m[1], m[2]];
 }
 
@@ -91,6 +94,8 @@ export function plainSegments(text: string, knownMedications: string[] = []): Se
 
   const out: Segment[] = [];
   for (let i = 0; i < tokens.length; ) {
+    // Label lines are sentences of their own: capitalize after a line break too.
+    if (i > 0 && tokens[i - 1].space.includes('\n')) sentenceStart = true;
     const a = ann.get(i);
     if (a?.immutable) {
       const span = tokens.slice(i, a.end);
@@ -111,9 +116,4 @@ export function plainSegments(text: string, knownMedications: string[] = []): Se
     }
   }
   return out;
-}
-
-/** What text-to-speech reads: locked values as printed, followed by their meaning. */
-export function spokenText(segments: Segment[]): string {
-  return segments.map((s) => (s.meaning ? `${s.text}, ${s.meaning}` : s.text)).join('');
 }
