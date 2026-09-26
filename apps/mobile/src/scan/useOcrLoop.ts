@@ -4,7 +4,7 @@ import type { CameraView } from 'expo-camera';
 import { File } from 'expo-file-system';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { BoxTracker } from './boxTracker';
-import { imageBoxToScreenBox } from './coordinateMap';
+import { boxesLookRotated, imageBoxToScreenBox, rawBoxToUpright } from './coordinateMap';
 
 const OCR_INTERVAL_MS = 800; // design doc: 500–1000 ms, never every frame
 const DOC_ALPHA = 0.35; // same smoothing as BoxTracker
@@ -57,43 +57,45 @@ export function useOcrLoop({ cameraRef, viewSize, knownMedications, enabled }: O
       busy.current = true;
       let uri: string | undefined;
       try {
-        const photo = await cam.takePictureAsync({ quality: 0.4, shutterSound: false });
+        // exif: true so we get the Orientation tag needed to un-rotate ML Kit's boxes.
+        const photo = await cam.takePictureAsync({ quality: 0.4, shutterSound: false, exif: true });
         if (!photo) return;
         uri = photo.uri;
 
         const result = await TextRecognition.recognize(photo.uri);
-        const words: OcrWord[] = result.blocks.flatMap((block) =>
-          block.lines.flatMap((line) =>
-            line.elements.map((el) => ({
-              text: el.text,
-              bbox: {
-                x: el.frame?.left ?? 0,
-                y: el.frame?.top ?? 0,
-                width: el.frame?.width ?? 0,
-                height: el.frame?.height ?? 0,
-              },
-              confidence: 1, // ML Kit doesn't expose per-word confidence on iOS
-            })),
-          ),
+        const frame = (f?: { left: number; top: number; width: number; height: number }): BBox => ({
+          x: f?.left ?? 0,
+          y: f?.top ?? 0,
+          width: f?.width ?? 0,
+          height: f?.height ?? 0,
+        });
+        const lines = result.blocks.flatMap((block) => block.lines);
+
+        // photo.width/height are upright (expo-camera reports the oriented size, already cropped
+        // to the preview's aspect ratio), but ML Kit's boxes are in the raw landscape sensor buffer.
+        // Rotate them upright when they look sideways. Missing EXIF on a portrait photo = the usual 6.
+        const rotated = boxesLookRotated(lines.map((l) => frame(l.frame)));
+        const exifOrientation = Number(photo.exif?.Orientation) || (photo.height > photo.width ? 6 : 1);
+        const toUpright = (b: BBox) => (rotated ? rawBoxToUpright(b, exifOrientation, photo.width, photo.height) : b);
+
+        // One word list per printed line, so a highlight never merges words from two lines
+        // (a span that wraps onto the next line would otherwise become one tall box).
+        const lineWords: OcrWord[][] = lines.map((line) =>
+          line.elements.map((el) => ({
+            text: el.text,
+            bbox: toUpright(frame(el.frame)),
+            confidence: 1, // ML Kit doesn't expose per-word confidence on iOS
+          })),
         );
+        const words = lineWords.flat();
 
-        // ML Kit returns boxes in the display-upright (portrait) orientation, but iOS
-        // captures in landscape sensor pixels, so photo.width/height can be transposed
-        // relative to the boxes. If the photo's orientation doesn't match the preview's,
-        // swap the dimensions so the cover-scale math lines up. (Fixes "highlights land
-        // in the corner / on the air".)
-        const photoIsLandscape = photo.width > photo.height;
-        const viewIsLandscape = viewSize.width > viewSize.height;
-        const [imgW, imgH] =
-          photoIsLandscape !== viewIsLandscape ? [photo.height, photo.width] : [photo.width, photo.height];
-
-        const detections = parseCriticalFields(words, medsRef.current).map((a) => ({
-          ...a,
-          bbox: imageBoxToScreenBox(a.bbox, imgW, imgH, viewSize.width, viewSize.height),
-        }));
+        const toScreen = (b: BBox) => imageBoxToScreenBox(b, photo.width, photo.height, viewSize.width, viewSize.height);
+        const detections = lineWords
+          .flatMap((line) => parseCriticalFields(line, medsRef.current))
+          .map((a) => ({ ...a, bbox: toScreen(a.bbox) }));
 
         const now = Date.now();
-        const doc = union(words.map((w) => imageBoxToScreenBox(w.bbox, imgW, imgH, viewSize.width, viewSize.height)));
+        const doc = union(words.map((w) => toScreen(w.bbox)));
         if (doc) docSeen.current = now;
         setDocBox((prev) => (doc ? (prev ? lerpBox(prev, doc) : doc) : now - docSeen.current < DOC_KEEP_ALIVE_MS ? prev : null));
 

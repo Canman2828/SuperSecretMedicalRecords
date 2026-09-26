@@ -76,7 +76,7 @@ every ~800ms: low-res still → ML Kit OCR (on device) → words + boxes
 
 The parser also tags `signature` (signature lines, "X ____") and `timing` (dates, clock times, "at bedtime"). The AI rewrite never sees protected values: `packages/shared/src/protect.ts` swaps them for `[[n]]` placeholders and rejects output that drops/duplicates one or adds digits; the client falls back to the glossary-only version.
 
-Key files: `apps/mobile/src/scan/{useOcrLoop,coordinateMap,boxTracker}.ts`, `HighlightLayer.tsx`, `ArPanels.tsx`, `ExplanationSheet.tsx`, and `packages/shared/src/criticalParser.ts`. If highlights look offset, check `coordinateMap.ts` first (preview is cover-scaled). Photos are discarded right after OCR.
+Key files: `apps/mobile/src/scan/{useOcrLoop,coordinateMap,boxTracker}.ts`, `HighlightLayer.tsx`, `ArPanels.tsx`, `ExplanationSheet.tsx`, and `packages/shared/src/criticalParser.ts`. If highlights look offset, check `coordinateMap.ts` first (preview is cover-scaled; ML Kit boxes come back in the raw landscape sensor buffer and are rotated upright via EXIF orientation in `rawBoxToUpright`). Photos are discarded right after OCR.
 
 ## Conventions & gotchas
 
