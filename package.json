@@ -9,6 +9,8 @@
     "dev:server": "npm run dev -w @medifyrx/server",
     "dev:web": "npm run dev -w @medifyrx/web",
     "dev:mobile": "npm run start -w @medifyrx/mobile",
+    "ios:simulator": "npm run ios:simulator -w @medifyrx/mobile --",
+    "ios:device": "npm run ios:device -w @medifyrx/mobile --",
     "dev": "concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "postinstall": "patch-package"

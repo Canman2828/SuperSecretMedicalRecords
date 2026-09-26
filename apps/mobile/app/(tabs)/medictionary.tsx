@@ -1,137 +1,188 @@
-import type { ExplainResponse } from '@medifyrx/shared';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { ChatMessage } from '@medifyrx/shared';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../src/api';
+import { useProfile } from '../../src/profile/ProfileContext';
 
-const CATEGORIES = ['Dosage terms', 'Medicines', 'Symptoms', 'Tests and procedures', 'Words I heard'] as const;
-type Category = (typeof CATEGORIES)[number];
-
-// A few common terms as one-tap starting points.
-const QUICK_TERMS = ['PRN', 'PO', 'BID', 'contraindicated', 'titration', 'adverse reaction'];
-
-const SOURCE_LABEL: Record<ExplainResponse['source'], string> = {
-  glossary: 'From the medify glossary',
-  ai: 'AI explanation — please verify',
-  none: 'No trusted explanation found',
-};
+const GREETING =
+  "Hi, I'm the medify.Rx assistant. Ask me what a medication is for or what something on your label means. " +
+  "I can't give medical advice or change doses. In an emergency, call 911.";
 
 export default function MedictionaryScreen() {
   const insets = useSafeAreaInsets();
-  const [q, setQ] = useState('');
-  const [category, setCategory] = useState<Category>('Dosage terms');
-  const [answer, setAnswer] = useState<ExplainResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { profile } = useProfile();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const logRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
-  const ask = async (termArg?: string) => {
-    const term = (termArg ?? q).trim();
-    if (!term) return;
-    if (termArg) setQ(termArg);
-    setLoading(true);
+  useEffect(() => () => requestRef.current?.abort(), []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const question: ChatMessage = { role: 'user', text: 'What can Medify help me do?' };
+    let reply = '';
+    let chunks = 0;
+    api.chat({ messages: [question] }, chunk => {
+      chunks += 1;
+      reply += chunk;
+      setMessages([question, { role: 'assistant', text: reply }]);
+    }, controller.signal).then(text => {
+      setMessages([question, { role: 'assistant', text }]);
+      console.log('MEDIFY_NATIVE_CHAT_TEST', JSON.stringify({ chunks, length: text.length, success: true }));
+    }).catch(error => {
+      if (!controller.signal.aborted) {
+        setError(String(error));
+        console.log('MEDIFY_NATIVE_CHAT_TEST', JSON.stringify({ success: false, error: String(error) }));
+      }
+    });
+    return () => controller.abort();
+  }, []);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || requestRef.current) return;
+
+    const controller = new AbortController();
+    requestRef.current = controller;
+    // The API accepts at most 40 messages. Keep complete user/assistant pairs.
+    const history: ChatMessage[] = [...messages.slice(-38), { role: 'user', text }];
+    const setReply = (reply: string) => {
+      if (!controller.signal.aborted) setMessages([...history, { role: 'assistant', text: reply }]);
+    };
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 60_000);
+
+    setSending(true);
+    setInput('');
     setError(null);
+    setReply('');
     try {
-      setAnswer(await api.explain({ term: term.slice(0, 100), context: category }));
+      let streamed = '';
+      const reply = await api.chat(
+        {
+          messages: history,
+          profile: {
+            medications: profile.medications.map(({ enteredName, normalizedName, strength, frequency }) => ({
+              enteredName, normalizedName, strength, frequency,
+            })),
+            allergies: profile.allergies.map(({ substance }) => ({ substance })),
+          },
+        },
+        (chunk) => setReply((streamed += chunk)),
+        controller.signal,
+      );
+      setReply(reply);
     } catch (err) {
-      setError(`Could not reach the dictionary. ${(err as Error).message}`);
+      if (controller.signal.aborted && !timedOut) return;
+      // Restore the question so a failed or interrupted reply can be retried.
+      setMessages(messages);
+      setInput(text);
+      setError(timedOut
+        ? 'The assistant took too long to respond. Please try again.'
+        : err instanceof TypeError
+          ? "Couldn't reach the assistant. Check your connection and try again."
+          : err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
-      setLoading(false);
+      clearTimeout(timeout);
+      requestRef.current = null;
+      setSending(false);
     }
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
-      <Text style={styles.h1}>Medictionary</Text>
-      <Text style={styles.sub}>
-        Ask about a medicine, a dosage term, or a word you heard at an appointment. Answers stay short and plain.
-      </Text>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={insets.top + 44}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <Text style={styles.eyebrow}>Conscious learning</Text>
+        <Text style={styles.heading}>Medictionary</Text>
+        <Text style={styles.subtitle}>
+          Ask about a medicine, a dosage term or a word you heard at an appointment, and get a short, plain-language answer.
+        </Text>
 
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.search}
-          value={q}
-          onChangeText={setQ}
-          placeholder="A word or term, e.g. PRN"
-          placeholderTextColor="#94a3b8"
-          maxLength={100}
-          autoCapitalize="none"
-          returnKeyType="search"
-          onSubmitEditing={() => ask()}
-        />
-        <Pressable style={[styles.askBtn, loading && styles.askBtnDisabled]} disabled={loading} onPress={() => ask()}>
-          <Text style={styles.askBtnText}>{loading ? '…' : 'Ask'}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.chips}>
-        {CATEGORIES.map((c) => (
-          <Pressable key={c} style={[styles.chip, category === c && styles.chipOn]} onPress={() => setCategory(c)}>
-            <Text style={[styles.chipText, category === c && styles.chipTextOn]}>{c}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.quickLabel}>Common terms</Text>
-      <View style={styles.chips}>
-        {QUICK_TERMS.map((t) => (
-          <Pressable key={t} style={styles.quickChip} onPress={() => ask(t)}>
-            <Text style={styles.quickChipText}>{t}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {loading && <ActivityIndicator style={{ marginTop: 24 }} color="#0d9488" />}
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      {answer && !loading && (
-        <View style={styles.answer}>
-          <View style={styles.answerHead}>
-            <Text style={styles.answerTerm}>{answer.term}</Text>
-            <View style={[styles.tag, answer.source === 'ai' && styles.tagAi, answer.source === 'none' && styles.tagNone]}>
-              <Text style={styles.tagText}>{SOURCE_LABEL[answer.source]}</Text>
-            </View>
+        <View style={styles.panel}>
+          <View style={styles.panelHead}>
+            <Text style={styles.panelTitle}>Medify?</Text>
+            <Text style={styles.badge}>AI answers, please verify</Text>
           </View>
-          <Text style={styles.answerBody}>{answer.simpleDefinition}</Text>
-          {answer.needsVerification && (
-            <Text style={styles.verify}>Please check this with a pharmacist or healthcare professional.</Text>
-          )}
-        </View>
-      )}
+          <ScrollView
+            ref={logRef}
+            style={styles.log}
+            contentContainerStyle={styles.messages}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => logRef.current?.scrollToEnd({ animated: true })}
+            accessibilityLabel="Conversation"
+          >
+            <Text style={[styles.message, styles.assistant]}>{GREETING}</Text>
+            {messages.map((message, index) => (
+              <Text key={index} style={[styles.message, message.role === 'user' ? styles.user : styles.assistant]}>
+                {message.text || 'Thinking…'}
+              </Text>
+            ))}
+          </ScrollView>
 
-      <Text style={styles.footer}>
-        Answers are for understanding only. Your pharmacist or doctor can tell you how anything applies to you.
-      </Text>
-    </ScrollView>
+          {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+          <View style={styles.composer}>
+            <TextInput
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+              placeholder="e.g. What is atorvastatin for?"
+              placeholderTextColor="#62626f"
+              accessibilityLabel="Message"
+              maxLength={2000}
+              multiline
+              editable={!sending}
+              returnKeyType="send"
+              submitBehavior="submit"
+              onSubmitEditing={send}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={sending ? 'Waiting for reply' : 'Send message'}
+              disabled={sending || !input.trim()}
+              onPress={send}
+              style={[styles.send, (sending || !input.trim()) && styles.disabled]}
+            >
+              {sending ? <ActivityIndicator color="#474859" /> : <Text style={styles.sendText}>Send</Text>}
+            </Pressable>
+          </View>
+          <Text style={styles.footer}>
+            General information only, not medical advice. Ask your pharmacist or prescriber before changing how you take any medication.
+            {'\n'}Emergency: 911 · Poison Control: 1-800-222-1222.
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f8fafc' },
-  content: { padding: 20, gap: 6 },
-  h1: { fontSize: 28, fontWeight: '800', color: '#0f172a' },
-  sub: { fontSize: 15, color: '#475569', lineHeight: 21, marginBottom: 12 },
-  searchRow: { flexDirection: 'row', gap: 10 },
-  search: { flex: 1, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff', color: '#0f172a' },
-  askBtn: { backgroundColor: '#0d9488', borderRadius: 12, paddingHorizontal: 20, justifyContent: 'center' },
-  askBtnDisabled: { opacity: 0.6 },
-  askBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  chip: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 99, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: '#fff' },
-  chipOn: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
-  chipText: { color: '#334155', fontWeight: '600', fontSize: 13 },
-  chipTextOn: { color: '#fff' },
-  quickLabel: { fontSize: 13, fontWeight: '700', color: '#334155', marginTop: 18 },
-  quickChip: { borderWidth: 1, borderColor: '#99f6e4', borderRadius: 99, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: '#f0fdfa' },
-  quickChipText: { color: '#0f766e', fontWeight: '600', fontSize: 13 },
-  error: { color: '#b91c1c', marginTop: 18, fontSize: 14 },
-  answer: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginTop: 20, borderWidth: 1, borderColor: '#e2e8f0', gap: 10 },
-  answerHead: { gap: 8 },
-  answerTerm: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
-  tag: { alignSelf: 'flex-start', backgroundColor: '#f0fdfa', borderRadius: 99, paddingVertical: 4, paddingHorizontal: 10 },
-  tagAi: { backgroundColor: '#fef3c7' },
-  tagNone: { backgroundColor: '#f1f5f9' },
-  tagText: { fontSize: 12, fontWeight: '600', color: '#475569' },
-  answerBody: { fontSize: 17, lineHeight: 25, color: '#0f172a' },
-  verify: { fontSize: 13, color: '#92400e', fontStyle: 'italic' },
-  footer: { fontSize: 12, color: '#94a3b8', marginTop: 24, lineHeight: 18 },
+  screen: { flex: 1, backgroundColor: '#e9e9ec' },
+  content: { padding: 20, paddingBottom: 28, gap: 10 },
+  eyebrow: { color: '#665c82', fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  heading: { fontSize: 32, fontWeight: '600', color: '#272a3b' },
+  subtitle: { fontSize: 16, lineHeight: 24, color: '#62626f', marginBottom: 12 },
+  panel: { backgroundColor: '#efeff2', borderRadius: 24, padding: 16, gap: 16, boxShadow: '5px 5px 16px rgba(160,163,178,0.35)' },
+  panelHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  panelTitle: { fontSize: 22, fontWeight: '600', color: '#272a3b' },
+  badge: { fontSize: 11, color: '#665c82', backgroundColor: '#e4dfef', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 99 },
+  log: { maxHeight: 340, backgroundColor: '#e9e9ec', borderRadius: 16 },
+  messages: { padding: 12, gap: 12 },
+  message: { fontSize: 16, lineHeight: 24, padding: 12, borderRadius: 16, maxWidth: '92%' },
+  assistant: { alignSelf: 'flex-start', backgroundColor: '#f7f7f7', color: '#474859' },
+  user: { alignSelf: 'flex-end', backgroundColor: '#e4dfef', color: '#665c82' },
+  composer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  input: { flex: 1, minHeight: 52, maxHeight: 120, backgroundColor: '#e9e9ec', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14, color: '#272a3b', fontSize: 16 },
+  send: { minWidth: 64, minHeight: 52, borderRadius: 16, backgroundColor: '#c9bfe0', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  sendText: { color: '#474859', fontWeight: '700', fontSize: 15 },
+  disabled: { opacity: 0.5 },
+  error: { color: '#b91c1c', fontSize: 14, lineHeight: 20 },
+  footer: { fontSize: 12, lineHeight: 18, color: '#62626f' },
 });

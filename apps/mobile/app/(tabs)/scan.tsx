@@ -2,7 +2,7 @@ import { newId, type Annotation } from '@medifyrx/shared';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, NativeModules, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProfile } from '../../src/profile/ProfileContext';
 import { ArPanels } from '../../src/scan/ArPanels';
@@ -15,6 +15,7 @@ import { useOcrLoop } from '../../src/scan/useOcrLoop';
 const DEMO_MEDICATIONS = ['amoxicillin', 'metoprolol', 'warfarin', 'aspirin', 'atorvastatin', 'lisinopril', 'metformin'];
 
 export default function ScanScreen() {
+  const hasOcr = Boolean(NativeModules.TextRecognition);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [viewSize, setViewSize] = useState({ width: 0, height: 0 });
@@ -41,7 +42,7 @@ export default function ScanScreen() {
     cameraRef,
     viewSize,
     knownMedications,
-    enabled: focused && !paused && !selected && Boolean(permission?.granted),
+    enabled: hasOcr && focused && !paused && !selected && Boolean(permission?.granted),
   });
 
   // For "Add to profile": grab the dosing value printed closest to the tapped medication.
@@ -54,6 +55,15 @@ export default function ScanScreen() {
       .sort((x, y) => x.d - y.d);
     return candidates[0] && candidates[0].d < selected.bbox.height * 3 ? candidates[0].a.sourceText : undefined;
   }, [selected, annotations]);
+
+  if (!hasOcr) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>Scan on your iPhone</Text>
+        <Text style={styles.body}>Live scanning requires an iPhone camera. You can explore the other tabs in the simulator.</Text>
+      </View>
+    );
+  }
 
   if (!permission) return <View style={styles.center} />;
   if (!permission.granted) {

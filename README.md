@@ -39,7 +39,7 @@ Pick one:
 **A. You have a Mac with Xcode** (fastest)
 ```bash
 cd apps/mobile
-npx expo run:ios --device      # plug in iPhone, pick it from the list
+npm run ios:device            # plug in iPhone, pick the physical phone from the list
 ```
 First build takes ~5–10 min. After that just run `npm run dev:mobile` from the root.
 
@@ -53,7 +53,23 @@ npm run dev:mobile             # then scan the QR code
 ```
 EAS needs an Apple Developer account ($99/yr) to install on a physical phone. If nobody on the team has one, go with option A.
 
-**Test on a real iPhone, not the simulator.** The camera doesn't work in the simulator.
+**Simulator UI preview (Mac with Xcode):** from the repo root, run `npm run ios:simulator`.
+This builds and opens the app in an iPhone simulator. Save UI changes while Metro is
+running to see them refresh. The Scan screen links to the sample Preview screen;
+the simulator cannot use a live camera.
+
+**Physical iPhone:** from the repo root, run `npm run ios:device`, select your
+connected phone, and enable Developer Mode on the phone if prompted. Xcode needs
+an Apple account/development team for signing. This build includes the full ML Kit
+OCR library. Cloud builds with `npm run build:ios` also retain OCR.
+
+Use these commands when switching between simulator and phone: they reinstall
+the correct pods before building. ML Kit's bundled binaries exclude Apple Silicon
+simulators, so `react-native.config.js` omits ML Kit only when
+`MEDIFYRX_IOS_TARGET=simulator`. The default remains a full phone build. Do not
+override excluded architectures or reuse simulator pods for a phone build.
+
+**Test camera scanning on a real iPhone.** Use the simulator for layout and navigation.
 
 Your phone and computer need to be on the same Wi-Fi, and `EXPO_PUBLIC_API_URL` must be your computer's IP (not `localhost`). Hackathon Wi-Fi often blocks device-to-device traffic; if so, run `npx localtunnel --port 4000` or deploy the API and use that URL.
 

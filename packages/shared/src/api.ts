@@ -18,7 +18,11 @@ import type {
  *   web:    createApiClient(import.meta.env.VITE_API_URL)
  *   mobile: createApiClient(process.env.EXPO_PUBLIC_API_URL)
  */
-export function createApiClient(baseUrl: string, getToken?: () => string | null | undefined) {
+export function createApiClient(
+  baseUrl: string,
+  getToken?: () => string | null | undefined,
+  streamingFetch: (url: string, init?: RequestInit) => Promise<Response> = fetch,
+) {
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = getToken?.();
     const res = await fetch(`${baseUrl}${path}`, {
@@ -78,10 +82,10 @@ export function createApiClient(baseUrl: string, getToken?: () => string | null 
       request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
     /**
      * Stream a medication-chat reply. Calls `onText` with each chunk and resolves with the full reply.
-     * Needs a streaming fetch (browsers); React Native's fetch can't read response streams.
+     * Native clients supply expo/fetch as streamingFetch; browsers use their default fetch.
      */
     chat: async (body: ChatRequest, onText: (chunk: string) => void, signal?: AbortSignal) => {
-      const res = await fetch(`${baseUrl}/api/chat`, {
+      const res = await streamingFetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

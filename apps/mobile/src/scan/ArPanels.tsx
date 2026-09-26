@@ -72,7 +72,7 @@ function KeyDetails({ annotations, docBox, viewSize, insets, onSelect }: Props) 
   const leftX = docBox.x - GAP - KEY_WIDTH;
 
   // Beside the paper if there's room, else above/below it, else docked at the bottom.
-  let place: ViewStyle;
+  let place: Pick<ViewStyle, 'left' | 'right' | 'top' | 'bottom' | 'width' | 'maxHeight'>;
   if (rightX + KEY_WIDTH <= area.right) {
     place = { left: rightX, top, width: KEY_WIDTH, maxHeight: area.bottom - top };
   } else if (leftX >= area.left) {
