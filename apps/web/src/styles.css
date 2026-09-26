@@ -172,6 +172,22 @@ button:disabled, .btn:disabled, .chip:disabled { opacity: 0.5; cursor: not-allow
 .tree3d.camera { background: #1F2130; }
 .tree3d-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 .tree3d-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tree3d-video.mirror { transform: scaleX(-1); }
+/* hand-gesture cursors (Camera view); positioned with transform for cheap per-frame updates */
+.hand-cursors { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.hand-cursor {
+  position: absolute; left: 0; top: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; pointer-events: none;
+  will-change: transform;
+  border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(91, 79, 140, .55), 0 4px 14px rgba(0, 0, 0, .25);
+  transition: background .12s ease, box-shadow .12s ease;
+}
+.hand-cursor.pinch { background: rgba(255, 255, 255, .9); box-shadow: 0 0 0 6px rgba(91, 79, 140, .35), 0 4px 14px rgba(0, 0, 0, .25); }
+.hand-label {
+  position: absolute; left: 50%; top: 40px; transform: translateX(-50%); white-space: nowrap;
+  padding: 3px 10px; border-radius: var(--r-pill); font-family: var(--f-head); font-size: 12px; font-weight: 700;
+  color: var(--ink); background: rgba(247, 247, 250, .92); box-shadow: var(--out-sm);
+}
+.hand-help { max-width: min(620px, 100%); }
 .tree3d-hud { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; pointer-events: none; }
 .tree3d-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .tree3d-top > *, .tree3d-chip, .tree3d-hint, .pair-card { pointer-events: auto; }

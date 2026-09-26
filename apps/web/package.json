@@ -10,6 +10,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
     "@medifyrx/shared": "*",
     "mammoth": "^1.12.3",
     "pdfjs-dist": "^6.3.289",
