@@ -4,6 +4,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../src/api';
 import { useProfile } from '../../src/profile/ProfileContext';
+import { F } from '../../src/ui/theme';
 
 const GREETING =
   "Hi, I'm the medify.Rx assistant. Ask me what a medication is for or what something on your label means. " +
@@ -98,7 +99,7 @@ export default function MedictionaryScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={insets.top + 44}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
         <Text style={styles.eyebrow}>Conscious learning</Text>
         <Text style={styles.heading}>Medictionary</Text>
         <Text style={styles.subtitle}>
@@ -166,23 +167,23 @@ export default function MedictionaryScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#e9e9ec' },
   content: { padding: 20, paddingBottom: 28, gap: 10 },
-  eyebrow: { color: '#665c82', fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  heading: { fontSize: 32, fontWeight: '600', color: '#272a3b' },
-  subtitle: { fontSize: 16, lineHeight: 24, color: '#62626f', marginBottom: 12 },
+  eyebrow: { fontFamily: F.headBold, color: '#665c82', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  heading: { fontFamily: F.head, fontSize: 32, color: '#272a3b' },
+  subtitle: { fontFamily: F.body, fontSize: 16, lineHeight: 24, color: '#62626f', marginBottom: 12 },
   panel: { backgroundColor: '#efeff2', borderRadius: 24, padding: 16, gap: 16, boxShadow: '5px 5px 16px rgba(160,163,178,0.35)' },
   panelHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  panelTitle: { fontSize: 22, fontWeight: '600', color: '#272a3b' },
-  badge: { fontSize: 11, color: '#665c82', backgroundColor: '#e4dfef', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 99 },
+  panelTitle: { fontFamily: F.head, fontSize: 22, color: '#272a3b' },
+  badge: { fontFamily: F.headBold, fontSize: 11, color: '#665c82', backgroundColor: '#e4dfef', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 99 },
   log: { maxHeight: 340, backgroundColor: '#e9e9ec', borderRadius: 16 },
   messages: { padding: 12, gap: 12 },
-  message: { fontSize: 16, lineHeight: 24, padding: 12, borderRadius: 16, maxWidth: '92%' },
+  message: { fontFamily: F.body, fontSize: 16, lineHeight: 24, padding: 12, borderRadius: 16, maxWidth: '92%' },
   assistant: { alignSelf: 'flex-start', backgroundColor: '#f7f7f7', color: '#474859' },
   user: { alignSelf: 'flex-end', backgroundColor: '#e4dfef', color: '#665c82' },
   composer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, minHeight: 52, maxHeight: 120, backgroundColor: '#e9e9ec', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14, color: '#272a3b', fontSize: 16 },
+  input: { fontFamily: F.body, flex: 1, minHeight: 52, maxHeight: 120, backgroundColor: '#e9e9ec', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14, color: '#272a3b', fontSize: 16 },
   send: { minWidth: 64, minHeight: 52, borderRadius: 16, backgroundColor: '#c9bfe0', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  sendText: { color: '#474859', fontWeight: '700', fontSize: 15 },
+  sendText: { fontFamily: F.headBold, color: '#474859', fontSize: 15 },
   disabled: { opacity: 0.5 },
-  error: { color: '#b91c1c', fontSize: 14, lineHeight: 20 },
-  footer: { fontSize: 12, lineHeight: 18, color: '#62626f' },
+  error: { fontFamily: F.body, fontSize: 14, lineHeight: 20, color: '#b91c1c' },
+  footer: { fontFamily: F.body, fontSize: 12, lineHeight: 18, color: '#62626f' },
 });

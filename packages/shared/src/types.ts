@@ -217,3 +217,25 @@ export type ChatStreamEvent =
   | { type: 'text'; text: string }
   | { type: 'done'; text: string }
   | { type: 'error'; message: string };
+
+// ---------- Saved documents (Compremedic cloud save) ----------
+
+/** What the client sends to save a photographed document to the signed-in account. */
+export interface MedDocumentInput {
+  /** Base64-encoded image bytes, no `data:` prefix. */
+  imageBase64: string;
+  mimeType: string;
+  /** The plain-language rewrite shown beside the original. */
+  plainText: string;
+  /** The original text read from the document. */
+  originalText?: string;
+  /** e.g. "Prescription label". */
+  docType?: string;
+}
+
+/** A saved document as returned by the API. */
+export interface MedDocument extends MedDocumentInput {
+  id: string;
+  /** ISO timestamp. */
+  createdAt: string;
+}

@@ -21,6 +21,13 @@
           "cameraPermission": "medify.Rx uses the camera to highlight and explain medical terms on your prescription. Images are not saved."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "medify.Rx lets you pick a photo of a label or form to read its text, and to save that document to your account.",
+          "cameraPermission": "medify.Rx uses the camera to photograph a label or form so it can read the text and, if you choose, save the document to your account."
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {

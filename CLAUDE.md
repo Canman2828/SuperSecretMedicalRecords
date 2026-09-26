@@ -59,7 +59,12 @@ POST   /api/auth/register | /login      → JWT
 GET    /api/profile                     (auth) saved profile
 PUT    /api/profile                     (auth) save — only after explicit opt-in
 DELETE /api/profile                     (auth) wipe saved health info
+POST   /api/documents                   (auth) save a Compremedic photo (base64) + plain-language text
+GET    /api/documents                   (auth) list the user's saved documents, newest first
+DELETE /api/documents/:id               (auth) delete one saved document (photo + text)
 ```
+
+Note: `/api/documents` is mounted with its own 15mb JSON parser (photos are base64); every other route keeps the deliberate 200kb limit. Documents are keyed by `userId` and stored in Mongo — see `models/MedDocument.ts`, `routes/documents.ts`.
 
 Server layout: `routes/` (HTTP) → `services/` (`rxnorm.ts`, `openfda.ts`, `interactionResolver.ts`, `ai.ts`, `chat.ts`, `translate.ts`) → `models/` (Mongoose). `middleware/auth.ts` guards authed routes; `schemas.ts` + `middleware/validate.ts` do Zod validation.
 
@@ -80,7 +85,7 @@ Key files: `apps/mobile/src/scan/{useOcrLoop,coordinateMap,boxTracker}.ts`, `Hig
 
 ## Conventions & gotchas
 
-- **Privacy first.** Request bodies carry health info — the server deliberately does **not** log them (see comment in `app.ts`). Keep it that way. Profile is only persisted after explicit user opt-in.
+- **Privacy first.** Request bodies carry health info — the server deliberately does **not** log them (see comment in `app.ts`). Keep it that way. Profile is only persisted after explicit user opt-in. The **Scan** tab still discards photos right after OCR (nothing leaves the device). The **Compremedic** tab is the one exception: a signed-in user can explicitly save a captured photo + its plain-language text to their account (`/api/documents`), and delete it anytime.
 - **Server is ESM.** Route/service imports use `.js` extensions in TS source (e.g. `./routes/auth.js`). Match that style.
 - **React is pinned** to 19.2.3 via root `overrides` — don't fight it in a workspace.
 - **Mobile can't use Expo Go.** ML Kit OCR is a native module, so it needs a **development build** on a **physical iPhone** (camera doesn't work in the simulator). See README for the Xcode / EAS paths.

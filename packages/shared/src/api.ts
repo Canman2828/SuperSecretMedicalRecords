@@ -6,6 +6,8 @@ import type {
   ExplainResponse,
   InteractionCheckRequest,
   InteractionCheckResponse,
+  MedDocument,
+  MedDocumentInput,
   MedicationUsesRequest,
   MedicationUsesResponse,
   Profile,
@@ -80,6 +82,17 @@ export function createApiClient(
     /** Only call this after the user explicitly opts in to saving. */
     saveProfile: (profile: Profile) =>
       request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
+
+    /** Save a photographed document (image + plain-language text) to the signed-in account. */
+    uploadDocument: (body: MedDocumentInput) =>
+      request<MedDocument>('/api/documents', { method: 'POST', body: JSON.stringify(body) }),
+
+    /** List the signed-in user's saved documents, newest first. */
+    listDocuments: () => request<{ documents: MedDocument[] }>('/api/documents'),
+
+    /** Delete one saved document (photo and text) by id. */
+    deleteDocument: (id: string) =>
+      request<{ ok: true }>(`/api/documents/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     /**
      * Stream a medication-chat reply. Calls `onText` with each chunk and resolves with the full reply.
      * Native clients supply expo/fetch as streamingFetch; browsers use their default fetch.

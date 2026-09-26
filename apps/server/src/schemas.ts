@@ -87,6 +87,20 @@ export const translateSchema = z.object({
   mode: z.enum(['faithful', 'summary']).optional(),
 });
 
+// A saved Compremedic document: the photo (base64) + the plain-language text read from it.
+// imageBase64 is bounded so a single request can't blow past the route's body limit.
+export const documentSchema = z.object({
+  imageBase64: z.string().min(1).max(12_000_000),
+  mimeType: z
+    .string()
+    .max(60)
+    .regex(/^image\/[a-zA-Z0-9.+-]+$/, 'Must be an image mime type')
+    .default('image/jpeg'),
+  plainText: z.string().trim().min(1).max(8000),
+  originalText: z.string().max(8000).optional(),
+  docType: z.string().max(60).optional(),
+});
+
 export const medicationUsesSchema = z
   .object({
     medications: z.array(z.string().trim().min(1).max(200)).max(20).optional(),

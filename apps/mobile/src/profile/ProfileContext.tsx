@@ -1,8 +1,10 @@
 import type { Allergy, Food, Medication, Profile } from '@medifyrx/shared';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
-// In-memory guest profile shared by the Scan and Profile tabs.
-// Nothing is persisted unless the user logs in and explicitly saves (see api.saveProfile).
+// In-memory profile shared by Scan, Compremedic, Prescriptive and Medictionary.
+// Nothing is persisted unless the user signs in and explicitly saves (see api.saveProfile).
+
+export const EMPTY_PROFILE: Profile = { medications: [], allergies: [], foods: [] };
 
 interface ProfileCtx {
   profile: Profile;
@@ -16,7 +18,7 @@ interface ProfileCtx {
 const Ctx = createContext<ProfileCtx | null>(null);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<Profile>({ medications: [], allergies: [], foods: [] });
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
 
   const value = useMemo<ProfileCtx>(
     () => ({

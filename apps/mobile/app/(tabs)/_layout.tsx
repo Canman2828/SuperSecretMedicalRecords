@@ -1,33 +1,42 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Icon, type IconName } from '../../src/ui/Icon';
+import { C, F, SH } from '../../src/ui/theme';
+
+// Same tools as the website's nav, plus the live camera Scan that only the phone can do.
+const TABS: { name: string; title: string; icon: IconName }[] = [
+  { name: 'index', title: 'Home', icon: 'home' },
+  { name: 'scan', title: 'Scan', icon: 'camera' },
+  { name: 'compremedic', title: 'Compremedic', icon: 'scan' },
+  { name: 'prescriptive', title: 'Prescriptive', icon: 'tree' },
+  { name: 'medictionary', title: 'Medictionary', icon: 'book' },
+];
 
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#0d9488', tabBarLabelStyle: { fontSize: 10 } }}>
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Home', headerShown: false, tabBarIcon: () => <Text>🏠</Text> }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{ title: 'Scan', headerShown: false, tabBarIcon: () => <Text>📷</Text> }}
-      />
-      <Tabs.Screen
-        name="compremedic"
-        options={{ title: 'Compremedic', tabBarIcon: () => <Text>🔊</Text> }}
-      />
-      <Tabs.Screen
-        name="medictionary"
-        options={{ title: 'Medictionary', tabBarIcon: () => <Text>📖</Text> }}
-      />
-      <Tabs.Screen
-        name="prescriptive"
-        options={{ title: 'Prescriptive', tabBarIcon: () => <Text>🌳</Text> }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: 'Profile', tabBarIcon: () => <Text>💊</Text> }}
-      />
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: C.dusk,
+        tabBarInactiveTintColor: C.ink3,
+        tabBarLabelStyle: { fontFamily: F.head, fontSize: 10 },
+        tabBarStyle: {
+          backgroundColor: C.surface,
+          borderTopWidth: 0,
+          boxShadow: SH.outSm,
+        },
+        sceneStyle: { backgroundColor: C.bg },
+      }}
+    >
+      {TABS.map((t) => (
+        <Tabs.Screen
+          key={t.name}
+          name={t.name}
+          options={{
+            title: t.title,
+            tabBarIcon: ({ color, size }) => <Icon name={t.icon} size={size - 2} color={String(color)} />,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

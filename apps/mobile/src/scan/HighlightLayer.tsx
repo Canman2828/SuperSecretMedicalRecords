@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 export const CATEGORY_STYLE: Record<AnnotationCategory, { color: string; icon: string; label: string }> = {
   critical: { color: '#dc2626', icon: '🔒', label: 'Exact text' },
   warning: { color: '#ea580c', icon: '⚠', label: 'Warning' },
-  medication: { color: '#0d9488', icon: '💊', label: 'Medication' },
+  medication: { color: '#736A86', icon: 'Rx', label: 'Medication' },
   abbreviation: { color: '#2563eb', icon: 'Ab', label: 'Abbreviation' },
   jargon: { color: '#7c3aed', icon: '?', label: 'Medical term' },
   consent: { color: '#475569', icon: '§', label: 'Consent term' },

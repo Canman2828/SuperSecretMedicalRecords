@@ -1,8 +1,12 @@
 import { LOW_CONFIDENCE, type Annotation } from '@medifyrx/shared';
 import * as Speech from 'expo-speech';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api';
+import { Icon } from '../ui/Icon';
+import { Btn, Field } from '../ui/kit';
+import { ACC, C, F, R, SH } from '../ui/theme';
 import { CATEGORY_STYLE } from './HighlightLayer';
 
 interface Props {
@@ -22,6 +26,7 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
   const [explanation, setExplanation] = useState<string | undefined>();
   const [needsVerification, setNeedsVerification] = useState(false);
   const [strength, setStrength] = useState('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!a) return;
@@ -48,14 +53,15 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]} accessibilityViewIsModal>
+        <View style={styles.grab} />
         <Text style={[styles.category, { color: s.color }]}>
           {s.icon} {s.label}
         </Text>
 
         <Text style={styles.heading}>Original</Text>
         <View style={styles.original}>
-          {a.immutable && <Text style={styles.lock}>🔒</Text>}
+          {a.immutable && <Icon name="lock" size={16} color={ACC.steel.deep} />}
           <Text style={styles.originalText} selectable>
             {a.sourceText}
           </Text>
@@ -78,21 +84,16 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
         ) : a.category === 'medication' ? (
           <>
             <Text style={styles.heading}>Add to my profile</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Strength (e.g. 500 mg)"
-              value={strength}
-              onChangeText={setStrength}
-            />
-            <Pressable
-              style={styles.primary}
+            <Field small placeholder="Strength (e.g. 500 mg)" value={strength} onChangeText={setStrength} accessibilityLabel="Strength" />
+            <Btn
+              label="Add to profile"
+              iconLeft="plus"
+              full
               onPress={() => {
                 onAddToProfile(a.sourceText, strength.trim() || undefined);
                 onClose();
               }}
-            >
-              <Text style={styles.primaryText}>Add to profile</Text>
-            </Pressable>
+            />
           </>
         ) : (
           <>
@@ -103,14 +104,8 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
         )}
 
         <View style={styles.row}>
-          <Pressable style={styles.button} onPress={() => speak(a.sourceText)}>
-            <Text>🔊 Listen to original</Text>
-          </Pressable>
-          {explanation && (
-            <Pressable style={styles.button} onPress={() => speak(explanation)}>
-              <Text>🔊 Listen to explanation</Text>
-            </Pressable>
-          )}
+          <Btn label="Listen to original" iconLeft="volume" variant="neu" height={42} onPress={() => speak(a.sourceText)} />
+          {explanation && <Btn label="Listen to explanation" iconLeft="volume" variant="neu" height={42} onPress={() => speak(explanation)} />}
         </View>
 
         <Text style={styles.disclaimer}>This explains terms only. It isn't medical advice.</Text>
@@ -120,19 +115,15 @@ export function ExplanationSheet({ annotation: a, suggestedStrength, onAddToProf
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#fff', padding: 20, paddingBottom: 36, borderTopLeftRadius: 16, borderTopRightRadius: 16, gap: 8 },
-  category: { fontWeight: '700', fontSize: 13, textTransform: 'uppercase' },
-  heading: { fontSize: 12, color: '#64748b', textTransform: 'uppercase', marginTop: 8 },
-  original: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', padding: 10, borderRadius: 8 },
-  lock: { fontSize: 16 },
-  originalText: { fontSize: 20, fontWeight: '600', fontFamily: 'Menlo' },
-  body: { fontSize: 17, lineHeight: 24 },
-  warn: { color: '#b45309', fontWeight: '600' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  button: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 10, fontSize: 16 },
-  primary: { backgroundColor: '#0d9488', borderRadius: 8, padding: 12, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '700' },
-  disclaimer: { fontSize: 12, color: '#64748b', marginTop: 8 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(39,42,59,0.28)' },
+  sheet: { backgroundColor: C.surface, paddingHorizontal: 22, paddingTop: 10, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, gap: 10, boxShadow: SH.outLg },
+  grab: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: C.line, marginBottom: 6 },
+  category: { fontFamily: F.headBold, fontSize: 12, letterSpacing: 1.2, textTransform: 'uppercase' },
+  heading: { fontFamily: F.headBold, fontSize: 11, letterSpacing: 1.3, color: C.ink3, textTransform: 'uppercase', marginTop: 6 },
+  original: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, paddingVertical: 12, paddingHorizontal: 14, borderRadius: R.md, boxShadow: SH.pane },
+  originalText: { flexShrink: 1, fontSize: 20, fontWeight: '600', fontFamily: F.mono, color: C.ink },
+  body: { fontFamily: F.body, fontSize: 17, lineHeight: 25, color: C.ink2 },
+  warn: { fontFamily: F.bodyBold, color: '#8A6A2E' },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
+  disclaimer: { fontFamily: F.body, fontSize: 13, color: C.ink3, marginTop: 6 },
 });

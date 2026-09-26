@@ -3,6 +3,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { env } from './env.js';
 import { authRouter } from './routes/auth.js';
 import { chatRouter } from './routes/chat.js';
+import { documentsRouter } from './routes/documents.js';
 import { drugsRouter } from './routes/drugs.js';
 import { explainRouter } from './routes/explain.js';
 import { interactionsRouter } from './routes/interactions.js';
@@ -14,6 +15,11 @@ export function createApp() {
   const app = express();
 
   app.use(cors({ origin: env.corsOrigins }));
+
+  // Saved-document photos are base64 (a few MB), so this route needs a larger body than the
+  // 200kb default. Mounted before the global parser so only /api/documents gets the big limit.
+  app.use('/api/documents', express.json({ limit: '15mb' }), documentsRouter);
+
   app.use(express.json({ limit: '200kb' }));
 
   // No request logging of bodies: they contain health information.

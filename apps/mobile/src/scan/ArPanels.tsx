@@ -1,8 +1,10 @@
 import type { Annotation, AnnotationCategory, BBox, MedicationUse } from '@medifyrx/shared';
 import * as Speech from 'expo-speech';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
+import { Icon } from '../ui/Icon';
+import { ACC, C, F } from '../ui/theme';
 import { originalSegments, plainSegments, spokenText, type Segment } from '../compremedic/plainLanguage';
 import { CATEGORY_STYLE } from './HighlightLayer';
 
@@ -72,7 +74,7 @@ function KeyDetails({ annotations, docBox, viewSize, insets, onSelect }: Props) 
   const leftX = docBox.x - GAP - KEY_WIDTH;
 
   // Beside the paper if there's room, else above/below it, else docked at the bottom.
-  let place: Pick<ViewStyle, 'left' | 'right' | 'top' | 'bottom' | 'width' | 'maxHeight'>;
+  let place: ComponentProps<typeof View>['style'];
   if (rightX + KEY_WIDTH <= area.right) {
     place = { left: rightX, top, width: KEY_WIDTH, maxHeight: area.bottom - top };
   } else if (leftX >= area.left) {
@@ -274,7 +276,8 @@ function Pane({
         {extra}
       </ScrollView>
       <Pressable style={styles.play} onPress={onPlay} accessibilityRole="button">
-        <Text style={styles.playText}>{playing ? '⏸ Stop' : '🔊 Listen'}</Text>
+        <Icon name={playing ? 'pause' : 'volume'} size={14} color={C.white} />
+        <Text style={styles.playText}>{playing ? 'Stop' : 'Listen'}</Text>
       </Pressable>
     </View>
   );
@@ -328,7 +331,7 @@ const styles = StyleSheet.create({
   // Liquid glass: translucent white, bright hairline border, soft shadow.
   glass: {
     position: 'absolute',
-    backgroundColor: 'rgba(255,255,255,0.84)',
+    backgroundColor: 'rgba(239,239,242,0.86)',
     borderColor: 'rgba(255,255,255,0.95)',
     borderWidth: 1.5,
     borderRadius: 18,
@@ -338,9 +341,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   pad: { padding: 12, gap: 8 },
-  title: { fontSize: 12, fontWeight: '800', color: '#1f2937', textTransform: 'uppercase', letterSpacing: 0.5 },
+  title: { fontFamily: F.headBold, fontSize: 12, color: C.ink, textTransform: 'uppercase', letterSpacing: 1 },
   group: { gap: 4 },
-  groupTitle: { fontSize: 12, fontWeight: '700' },
+  groupTitle: { fontFamily: F.headBold, fontSize: 12 },
   item: { borderLeftWidth: 3, paddingLeft: 8, paddingVertical: 3 },
   itemText: { fontSize: 14, fontWeight: '600', color: '#111827', fontFamily: 'Menlo' },
   dock: { position: 'absolute', flexDirection: 'row', gap: 8 },
@@ -348,16 +351,16 @@ const styles = StyleSheet.create({
   pane: { padding: 12, gap: 6, flexShrink: 1 },
   paneHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   paneScroll: { flexShrink: 1 },
-  note: { fontSize: 11, color: '#6b7280' },
-  body: { fontSize: 14, lineHeight: 21, color: '#111827' },
-  lock: { backgroundColor: '#fef3c7', color: '#92400e', fontWeight: '700' },
-  term: { color: '#0d9488', fontWeight: '700', textDecorationLine: 'underline' },
-  meaning: { color: '#0d9488', fontStyle: 'italic' },
-  play: { backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  playText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  note: { fontFamily: F.body, fontSize: 11, color: C.ink3 },
+  body: { fontFamily: F.body, fontSize: 14, lineHeight: 21, color: C.ink2 },
+  lock: { backgroundColor: ACC.steel.tint, color: ACC.steel.deep, fontFamily: F.bodyBold },
+  term: { textDecorationLine: 'underline', textDecorationStyle: 'dotted', textDecorationColor: ACC.lav.deep },
+  meaning: { color: ACC.lav.deep, fontFamily: F.bodyItalic },
+  play: { flexDirection: 'row', justifyContent: 'center', gap: 6, backgroundColor: C.dusk, borderRadius: 999, paddingVertical: 9, alignItems: 'center' },
+  playText: { color: C.white, fontFamily: F.head, fontSize: 13 },
   uses: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)', gap: 3 },
-  usesTitle: { fontSize: 12, fontWeight: '800', color: '#0d9488' },
-  useLine: { fontSize: 13, lineHeight: 19, color: '#111827' },
-  useMed: { fontWeight: '700', textTransform: 'capitalize' },
-  usesSource: { fontSize: 10, color: '#6b7280', marginTop: 2 },
+  usesTitle: { fontFamily: F.headBold, fontSize: 12, color: C.dusk },
+  useLine: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: C.ink2 },
+  useMed: { fontFamily: F.bodyBold, textTransform: 'capitalize' },
+  usesSource: { fontFamily: F.body, fontSize: 10, color: C.ink3, marginTop: 2 },
 });
