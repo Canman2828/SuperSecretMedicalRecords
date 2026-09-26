@@ -1,4 +1,4 @@
-import { ApiError, GoogleGenAI } from '@google/genai';
+import { ApiError, FinishReason, GoogleGenAI } from '@google/genai';
 import { maskProtected, restoreProtected, type TranslateResponse } from '@medifyrx/shared';
 import { env } from '../env.js';
 
@@ -30,7 +30,23 @@ The text has placeholders like [[1]], [[2]]. Each is an exact dose, time, drug n
 Do not write any digits or numbers of your own, and do not keep any number that is not inside a placeholder.
 Write two or three short sentences. Do not add advice or facts that are not in the text. Return only the summary.`;
 
-export type TranslateMode = 'faithful' | 'summary';
+// "Simple": the website's plain-words view. Same protected-value contract as 'faithful', but written for
+// someone with no medical background: very short sentences, everyday words, hard terms explained, one idea
+// per line. It may say what a medical WORD means, but never adds advice or facts about the patient's care.
+export const SIMPLE_SYSTEM_PROMPT = `You rewrite a medical document (prescription label, consent form, instructions) for a patient with no medical background.
+Write at about a 4th-grade reading level:
+- Use very short sentences, no more than about 12 words each. One idea per sentence.
+- Put each sentence on its own line.
+- Use everyday words only. Replace medical, legal, and formal words with simple ones (for example "discontinue" -> "stop", "prescriber" -> "the doctor who gave you this medicine", "hereby authorize" -> "you allow").
+- If a medical word must stay, such as the name of a procedure or condition, keep it and add a short plain explanation in round parentheses, like "cholecystectomy (surgery to take out the gallbladder)". Never use square brackets for this. Only explain what the word means.
+- Talk to the reader as "you". Turn "I agree", "I understand" and "the patient should" into plain "you" sentences.
+- Start instructions with a simple action word, like "Take", "Stop", "Call", "Do not".
+The text contains placeholders like [[1]], [[2]]. Each stands for an exact dose, time, drug name, or warning.
+Copy every placeholder exactly once, unchanged, where it belongs in your sentence. Never write out, guess, or explain what a placeholder means.
+Do not write any digits or numbers of your own. Do not add advice, safety opinions, or facts about the patient's care that are not in the text.
+Keep every instruction, risk, and warning; do not drop or soften any. Return only the rewritten text.`;
+
+export type TranslateMode = 'faithful' | 'summary' | 'simple';
 
 export async function translateDocument(
   text: string,
@@ -40,7 +56,7 @@ export async function translateDocument(
 ): Promise<TranslateResponse> {
   if (!client) return { segments: [], source: 'none' };
 
-  const prompt = mode === 'summary' ? SUMMARY_SYSTEM_PROMPT : TRANSLATE_SYSTEM_PROMPT;
+  const prompt = mode === 'summary' ? SUMMARY_SYSTEM_PROMPT : mode === 'simple' ? SIMPLE_SYSTEM_PROMPT : TRANSLATE_SYSTEM_PROMPT;
   const { masked, locks } = maskProtected(text, knownMedications);
   const raw = await callModel(masked, language, prompt).catch(() => '');
   const segments = raw ? restoreProtected(raw.trim(), locks) : null;
@@ -55,8 +71,12 @@ async function callModel(masked: string, language: string, systemInstruction: st
       const res = await client.models.generateContent({
         model,
         contents: [{ role: 'user', parts: [{ text: `Language: ${language}\n\nText:\n${masked}` }] }],
-        config: { systemInstruction, maxOutputTokens: 2048, temperature: 0.2 },
+        // No hidden "thinking": it spends the output budget and can cut the rewrite off mid-sentence.
+        config: { systemInstruction, maxOutputTokens: 8192, temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } },
       });
+      // A reply cut off by the length limit may have dropped a warning. Treat it as a failure so the
+      // client falls back to the glossary version instead of showing half a document.
+      if (res.candidates?.[0]?.finishReason === FinishReason.MAX_TOKENS) return '';
       return res.text ?? '';
     } catch (err) {
       const overloaded = err instanceof ApiError && err.status === 503;

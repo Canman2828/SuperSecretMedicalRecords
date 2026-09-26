@@ -50,22 +50,27 @@ export interface DrugSearchResult {
 
 // ---------- Interaction tree ----------
 
-export type ProfileNodeType = 'patient' | 'medication' | 'allergy' | 'food';
+/** 'other' = a substance that isn't a medicine or food (e.g. salt substitutes, alcohol, a vitamin). */
+export type ProfileNodeType = 'patient' | 'medication' | 'allergy' | 'food' | 'other';
 
 export interface ProfileNode {
   id: string;
   type: ProfileNodeType;
   label: string;
+  /** true = not in the user's profile; shown because something in the profile relates to it. */
+  related?: boolean;
   metadata?: Record<string, unknown>;
 }
 
-export type RelationshipType = 'drug-drug' | 'drug-food' | 'drug-allergy' | 'contraindication';
+export type RelationshipType = 'drug-drug' | 'drug-food' | 'drug-allergy' | 'drug-supplement' | 'contraindication';
 
 export type RelationshipStatus =
   | 'documented'
   | 'warning'
   | 'contraindication'
-  | 'possible-allergy-match';
+  | 'possible-allergy-match'
+  /** The label suggests these go together, e.g. a vitamin the medicine can deplete. Still "ask your doctor". */
+  | 'complementary';
 
 export interface Relationship {
   id: string;
@@ -88,6 +93,8 @@ export interface InteractionCheckRequest {
   medications: Pick<Medication, 'enteredName' | 'normalizedName' | 'rxCui'>[];
   allergies: Pick<Allergy, 'substance' | 'type'>[];
   foods: Pick<Food, 'name'>[];
+  /** Also return items NOT in the profile that something in it relates to (things to avoid or pair). */
+  includeRelated?: boolean;
 }
 
 export interface InteractionCheckResponse {
@@ -143,8 +150,8 @@ export interface TranslateRequest {
   language?: string;
   /** Extra medication names to protect (e.g. from the profile). */
   knownMedications?: string[];
-  /** 'summary' keeps only the medical instructions; 'faithful' (default) rewrites everything. */
-  mode?: 'faithful' | 'summary';
+  /** 'summary' keeps only the medical instructions; 'faithful' (default) rewrites everything; 'simple' rewrites everything in very plain words (web). */
+  mode?: 'faithful' | 'summary' | 'simple';
 }
 
 /** A run of text. `lock` = copied exactly from the original, never reworded or translated. */

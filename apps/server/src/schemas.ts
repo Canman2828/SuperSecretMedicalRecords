@@ -44,6 +44,7 @@ export const interactionCheckSchema = z.object({
     .max(100),
   allergies: z.array(z.object({ substance: z.string().min(1), type: z.enum(['medication', 'food', 'other']) })).max(100),
   foods: z.array(z.object({ name: z.string().min(1) })).max(100),
+  includeRelated: z.boolean().optional(),
 });
 
 export const chatSchema = z.object({
@@ -83,8 +84,8 @@ export const translateSchema = z.object({
   text: z.string().trim().min(1).max(4000),
   language: z.string().trim().min(1).max(40).optional(),
   knownMedications: z.array(z.string().min(1).max(200)).max(100).optional(),
-  /** 'summary' keeps only the medical instructions; 'faithful' (default) rewrites everything. */
-  mode: z.enum(['faithful', 'summary']).optional(),
+  /** 'summary' keeps only the medical instructions; 'faithful' (default) rewrites everything; 'simple' rewrites everything in very plain words. */
+  mode: z.enum(['faithful', 'summary', 'simple']).optional(),
 });
 
 // A saved Compremedic document: the photo (base64) + the plain-language text read from it.

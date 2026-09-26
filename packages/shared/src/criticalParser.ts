@@ -175,7 +175,8 @@ export function parseCriticalFields(
 
     // "do not crush", "avoid alcohol"
     const two = `${t} ${nextT}`;
-    if (NEGATIONS.has(two) || NEGATIONS.has(t)) {
+    // ...except the legal filler "including but not limited to", which isn't an instruction.
+    if ((NEGATIONS.has(two) || NEGATIONS.has(t)) && two !== 'NOT LIMITED') {
       const len = NEGATIONS.has(two) ? 2 : 1;
       const span = words.slice(i, Math.min(i + len + 1, words.length)); // negation + the word it applies to
       out.push(makeAnnotation(span, 'warning', true));

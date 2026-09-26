@@ -5,7 +5,8 @@ import type { CSSProperties } from 'react';
 export type IconName =
   | 'arrow-down' | 'arrow-right' | 'arrow-left' | 'arrow-ne' | 'scan' | 'tree' | 'book' | 'camera'
   | 'upload' | 'lock' | 'play' | 'pause' | 'shield' | 'plus' | 'x' | 'check' | 'menu' | 'cube' | 'vr'
-  | 'pace' | 'siren' | 'search' | 'volume' | 'key' | 'mail' | 'pill' | 'leaf';
+  | 'pace' | 'siren' | 'search' | 'volume' | 'key' | 'mail' | 'pill' | 'leaf'
+  | 'chevron-down' | 'pointer' | 'file' | 'sparkle' | 'food' | 'star' | 'highfive';
 
 export function Icon({ name, size, style }: { name: IconName; size?: number; style?: CSSProperties }) {
   return (

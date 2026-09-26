@@ -9,6 +9,7 @@ export const STATUS_STYLE: Record<RelationshipStatus, { icon: string; label: str
   warning: { icon: '!', label: 'Label warning', color: '#8A6A2E' },
   contraindication: { icon: '⊘︎', label: 'Contraindication found', color: '#8A3F4A' },
   'possible-allergy-match': { icon: '△︎', label: 'Possible allergy-related concern', color: '#665C82' },
+  complementary: { icon: '✓︎', label: 'Often paired', color: '#3E7A57' },
 };
 
 export const TYPE_ICON: Record<ProfileNode['type'], IconName> = {
@@ -16,4 +17,5 @@ export const TYPE_ICON: Record<ProfileNode['type'], IconName> = {
   medication: 'pill',
   allergy: 'shield',
   food: 'leaf',
+  other: 'cube',
 };

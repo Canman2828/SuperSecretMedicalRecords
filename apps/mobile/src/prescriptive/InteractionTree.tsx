@@ -13,7 +13,8 @@ type VStyle = ComponentProps<typeof View>['style'];
 //   My Profile -> Medications / Allergies / Foods (one column each) -> each item,
 // with every documented relationship drawn as a colored link and a tappable status badge.
 
-const CATEGORIES: { type: Exclude<ProfileNode['type'], 'patient'>; label: string }[] = [
+// The phone tree shows the three profile columns; it never requests the related/'other' nodes.
+const CATEGORIES: { type: 'medication' | 'allergy' | 'food'; label: string }[] = [
   { type: 'medication', label: 'Medications' },
   { type: 'allergy', label: 'Allergies' },
   { type: 'food', label: 'Foods' },
