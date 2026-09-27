@@ -109,15 +109,6 @@ PUT    /api/profile                       (auth) save, only after explicit opt-i
 DELETE /api/profile                       (auth) wipe saved health info
 ```
 
-## Before the demo — TODO
-
-- [ ] **Verify demo relationships.** `apps/server/src/data/demoRelationships.ts` has three edges with explanations in plain words. Open each label on DailyMed, confirm, and paste the exact label sentence into `sourceText` + the label URL.
-- [ ] Grow `packages/shared/src/glossary.ts` toward ~50 terms.
-- [ ] Print the sample prescription from the design doc (clean font, good lighting).
-- [ ] Phase 6: use `services/openfda.ts` in `interactionResolver.ts` to pull real label text.
-- [ ] Phase 8: wire `callModel` in `services/ai.ts` to your AI provider (key stays server-side).
-- [ ] Synthetic patient data only. Don't call it HIPAA compliant.
-
 ## Scripts (from root)
 
 ```bash
