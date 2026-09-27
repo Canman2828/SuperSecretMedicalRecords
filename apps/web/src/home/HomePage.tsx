@@ -22,7 +22,7 @@ export function HomePage() {
             <button className="btn btn-jelly btn-explore" onClick={() => scrollToId('features')}>
               Explore <span className="ar"><Icon name="arrow-down" /></span>
             </button>
-            <span className="hero-note"><span className="pulse-dot" />A learning tool, not a diagnostic tool</span>
+            <span className="hero-note"><span className="pulse-dot" />A learning tool, not a diagnostic measurement</span>
           </div>
         </div>
         <div className="stage" aria-hidden="true">

@@ -37,7 +37,7 @@ export default function HomeScreen() {
           <Btn label="Explore" icon="arrow-down" height={56} onPress={() => scroll.current?.scrollTo({ y: featuresY - 16 })} />
           <View style={styles.note}>
             <View style={styles.pulseDot} />
-            <Text style={styles.noteText}>A learning tool, not a diagnostic tool</Text>
+            <Text style={styles.noteText}>A learning tool, not a diagnostic measurement</Text>
           </View>
         </View>
       </View>
