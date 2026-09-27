@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && npm ci --workspace @medifyrx/web --workspace @medifyrx/shared --include-workspace-root",
+  "buildCommand": "cd ../.. && npm run build --workspace @medifyrx/web",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/(prescriptive-intro|hero-renders)/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [{ "key": "Permissions-Policy", "value": "camera=(self), xr-spatial-tracking=(self), microphone=()" }]
+    }
+  ]
+}

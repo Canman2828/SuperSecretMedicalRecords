@@ -1,0 +1,21 @@
+# Render Blueprint for the medify.Rx API (https://render.com/docs/blueprint-spec).
+# In Render: New → Blueprint → pick this repo. Then fill in the secret values it asks for.
+services:
+  - type: web
+    name: medifyrx-api
+    runtime: node
+    plan: free # free instances sleep after ~15 min idle (first request then takes ~50 s); "starter" stays awake
+    buildCommand: npm ci --workspace @medifyrx/server --workspace @medifyrx/shared --include-workspace-root
+    startCommand: npm run start --workspace @medifyrx/server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: CORS_ORIGINS
+        value: https://medifyrx.online,https://www.medifyrx.online
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_API_KEY
+        sync: false # paste your Gemini key in the Render dashboard
+      - key: MONGODB_URI
+        sync: false # leave empty for guest mode, or paste a MongoDB Atlas connection string
