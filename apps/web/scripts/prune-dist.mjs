@@ -5,7 +5,11 @@ import { existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const dist = fileURLToPath(new URL('../dist/', import.meta.url));
+const output = fileURLToPath(new URL('../dist/', import.meta.url));
+const staticDir = join(output, 'static');
+const versions = readdirSync(staticDir);
+if (versions.length !== 1) throw new Error('Expected one versioned static asset directory');
+const dist = join(staticDir, versions[0]);
 let removed = 0;
 let bytes = 0;
 

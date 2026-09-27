@@ -14,7 +14,7 @@ export const INTRO = {
   /** Playback speed: the frames' original 30 fps (about 6 seconds for 183 frames). */
   fps: 30,
   /** URL of frame `i` (1 … frameCount). */
-  frameUrl: (i: number, ext: 'webp' | 'png') => `/prescriptive-intro/${String(i).padStart(4, '0')}.${ext}`,
+  frameUrl: (i: number, ext: 'webp' | 'png') => `${import.meta.env.VITE_STATIC_ASSET_ROOT}/prescriptive-intro/${String(i).padStart(4, '0')}.${ext}`,
 
   /**
    * The pill in the LAST frame (measured from 0183.png):

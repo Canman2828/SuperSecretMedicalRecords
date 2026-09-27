@@ -4,8 +4,8 @@ import * as THREE from 'three';
 // The rendered clipboard and stethoscope (transparent images) floating in front of the portal.
 // Cropped .webp copies are made by apps/web/scripts/optimize-hero-renders.py from the PNG renders.
 const RENDERS = {
-  clipboard: { url: '/hero-renders/clipboard.webp', height: 4.6 },
-  stethoscope: { url: '/hero-renders/stethoscope.webp', height: 4.4 },
+  clipboard: { url: `${import.meta.env.VITE_STATIC_ASSET_ROOT}/hero-renders/clipboard.webp`, height: 4.6 },
+  stethoscope: { url: `${import.meta.env.VITE_STATIC_ASSET_ROOT}/hero-renders/stethoscope.webp`, height: 4.4 },
 };
 
 /** Floating clipboard + stethoscope on the home page. Purely decorative. */
