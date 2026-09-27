@@ -84,7 +84,7 @@ export default function PrescriptiveScreen() {
   return (
     <Screen accent={ACC.blush}>
       <PageHead icon="tree" goal="Awareness" title="Prescriptive">
-        Keep your medicines, allergies and foods in one profile, then see a tree of what to watch out for. Every link
+        Keep your medications, allergies, and foods in one profile, then see a tree of what to watch out for. Every link
         comes from a real drug label you can open.
       </PageHead>
 
@@ -143,7 +143,7 @@ export default function PrescriptiveScreen() {
                 title={total === 0 ? 'Start with your profile' : 'Ready when you are'}
                 text={
                   total === 0
-                    ? 'Add a medicine, allergy or food above, or load the demo patient.'
+                    ? 'Add a medication, allergy, or food above, or load the demo patient.'
                     : 'Check relationships to build your tree. Tap any colored badge to see where it comes from.'
                 }
               />
@@ -226,7 +226,7 @@ function RelationshipList({ result, onSelect }: { result: InteractionCheckRespon
 function Legend() {
   return (
     <View style={styles.legend}>
-      {([['Medicine', DOT.medication], ['Allergy', DOT.allergy], ['Food', DOT.food]] as const).map(([l, c]) => (
+      {([['Medication', DOT.medication], ['Allergy', DOT.allergy], ['Food', DOT.food]] as const).map(([l, c]) => (
         <View key={l} style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: c }]} />
           <Text style={styles.legendText}>{l}</Text>

@@ -1,3 +1,4 @@
+import { RouteLink } from './RouteLink';
 import type { CSSProperties } from 'react';
 
 // Icons and the logo are <symbol>s in the sprite inside index.html.
@@ -8,7 +9,7 @@ export type IconName =
   | 'pace' | 'siren' | 'search' | 'volume' | 'key' | 'mail' | 'pill' | 'leaf'
   | 'chevron-down' | 'pointer' | 'file' | 'sparkle' | 'food' | 'star' | 'highfive';
 
-export function Icon({ name, size, style }: { name: IconName; size?: number; style?: CSSProperties }) {
+export function Icon({ name, size = 20, style }: { name: IconName; size?: number; style?: CSSProperties }) {
   return (
     <svg className="i" width={size} height={size} style={style} aria-hidden="true">
       <use href={`#i-${name}`} />
@@ -18,11 +19,11 @@ export function Icon({ name, size, style }: { name: IconName; size?: number; sty
 
 export function Brand() {
   return (
-    <a className="brand" href="#home" aria-label="medify.Rx home">
+    <RouteLink className="brand" to="home" aria-label="medify.Rx home">
       <span className="brand-badge">
         <svg aria-hidden="true"><use href="#logo" /></svg>
       </span>
       <span className="brand-name">medify<b>.Rx</b></span>
-    </a>
+    </RouteLink>
   );
 }

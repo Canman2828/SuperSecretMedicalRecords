@@ -1,3 +1,4 @@
+import { RouteLink } from '../ui/RouteLink';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Page } from '../router';
 import { Brand, Icon } from '../ui/Icon';
@@ -24,19 +25,21 @@ export function Nav({ page, loggedIn, onSignOut }: NavProps) {
         <Brand />
         <div className={`nav-links${open ? ' open' : ''}`} id="navLinks">
           {TOOLS.map((t) => (
-            <a key={t.id} href={`#${t.id}`} aria-current={page === t.id ? 'page' : undefined}>
+            <RouteLink key={t.id} to={t.id} aria-current={page === t.id ? 'page' : undefined}>
               {t.label}
-            </a>
+            </RouteLink>
           ))}
           {/* On narrow screens the sign-in button is hidden, so offer it inside the menu. */}
-          <a className="nav-account" href={loggedIn ? undefined : '#signin'} onClick={loggedIn ? onSignOut : undefined} role={loggedIn ? 'button' : undefined}>
-            {loggedIn ? 'Sign out' : 'Sign in'}
-          </a>
+          {loggedIn ? (
+            <button className="nav-account" onClick={onSignOut}>Sign out</button>
+          ) : (
+            <RouteLink className="nav-account" to="signin">Sign in</RouteLink>
+          )}
         </div>
         {loggedIn ? (
           <button className="btn btn-neu btn-signin" onClick={onSignOut}>Sign out</button>
         ) : (
-          <a className="btn btn-neu btn-signin" href="#signin">Sign in</a>
+          <RouteLink className="btn btn-neu btn-signin" to="signin">Sign in</RouteLink>
         )}
         <button
           className="icon-btn menu-btn"
@@ -61,7 +64,7 @@ export function Footer() {
           <span>© 2026 medify.Rx. Hackathon prototype using synthetic data only.</span>
           <nav aria-label="Footer">
             {TOOLS.map((t) => (
-              <a key={t.id} href={`#${t.id}`}>{t.label}</a>
+              <RouteLink key={t.id} to={t.id}>{t.label}</RouteLink>
             ))}
           </nav>
         </div>
@@ -74,7 +77,7 @@ export function Footer() {
 export function PageHead({ icon, goal, title, children }: { icon: 'scan' | 'tree' | 'book'; goal: string; title: string; children: ReactNode }) {
   return (
     <>
-      <a className="crumb" href="#home"><Icon name="arrow-left" size={18} />All features</a>
+      <RouteLink className="crumb" to="home"><Icon name="arrow-left" size={18} />All features</RouteLink>
       <div className="page-head">
         <span className="orb"><Icon name={icon} /></span>
         <div>

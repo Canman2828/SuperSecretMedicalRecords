@@ -149,7 +149,7 @@ export default function CompremedicScreen() {
     <Screen accent={ACC.steel}>
       <PageHead icon="scan" goal="Comprehension" title="Compremedic">
         Photograph a consent form or a prescription label, or pick one from your photos. We place a plain-language
-        version beside the original and read either one aloud. Doses, timing and warnings are never reworded.
+        version beside the original and read either one aloud. Doses, timing, and warnings are never reworded.
       </PageHead>
 
       <Stepper done={done} now={now} />
@@ -227,8 +227,8 @@ export default function CompremedicScreen() {
         </View>
         <View style={{ marginTop: 26 }}>
           <Guard icon="lock" title="Protected details">
-            Highlighted values are copied exactly from the original and never rewritten: dose, how often, how long and
-            warnings. If anything looks different from your label, trust the label and ask your pharmacist.
+            Highlighted values are copied exactly from the original and never rewritten: dose, how often, how long, and
+            warnings. If anything looks different from your label, trust the label and ask your doctor or pharmacist.
           </Guard>
         </View>
       </Panel>

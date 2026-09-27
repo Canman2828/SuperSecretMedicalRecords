@@ -1,4 +1,4 @@
-// Turns an uploaded photo, PDF or Word document into plain text, entirely in the browser.
+// Turns an uploaded photo, PDF, or Word document into plain text, entirely in the browser.
 // The file never leaves the device: images and scanned pages are read with Tesseract (OCR),
 // PDFs with a text layer are read directly, and .docx files are unzipped with mammoth.
 // Heavy libraries are imported on demand so they don't weigh down the rest of the site.

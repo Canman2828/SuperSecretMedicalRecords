@@ -1,3 +1,4 @@
+import { RouteLink } from '../ui/RouteLink';
 import { newId, type InteractionCheckResponse, type Profile } from '@medifyrx/shared';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
@@ -102,7 +103,7 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
   return (
     <section className="page acc-blush">
       <PageHead icon="tree" goal="Awareness" title="Prescriptive">
-        Explore how your medicines, allergies and foods interact, in 3D or on the table in front of you. Red cables
+        Explore how your medications, allergies, and foods interact, in 3D or on the table in front of you. Red cables
         mean never combine, yellow means avoid, and green means often paired. Every link comes from a real drug label.
       </PageHead>
 
@@ -114,7 +115,7 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
           <span><i style={{ background: hex(TONE.avoid.cable) }} />{TONE.avoid.label}</span>
           <span><i style={{ background: hex(TONE.pair.cable) }} />{TONE.pair.label}</span>
           <span className="legend-sep" />
-          <span><Icon name="pill" size={15} style={{ color: hex(NODE_COLOR.medication) }} />Medicine</span>
+          <span><Icon name="pill" size={15} style={{ color: hex(NODE_COLOR.medication) }} />Medication</span>
           <span><Icon name="food" size={15} style={{ color: hex(NODE_COLOR.food) }} />Food</span>
           <span><Icon name="shield" size={15} style={{ color: hex(NODE_COLOR.allergy) }} />Allergy</span>
           <span><Icon name="star" size={15} style={{ color: hex(NODE_COLOR.other) }} />Other substance</span>
@@ -137,7 +138,7 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
             </div>
           </div>
           <p className="muted small" style={{ marginBottom: 12 }}>
-            Add what you take, what you’re allergic to and foods you eat often. The tree above updates as you go.
+            Add what you take, what you’re allergic to, and foods you eat often. The tree above updates as you go.
           </p>
           {loggedIn ? (
             <div className="save-row">
@@ -150,7 +151,7 @@ export function PrescriptivePage({ profile, onProfileChange, loggedIn }: Props) 
             </div>
           ) : (
             <p className="muted small">
-              Guest mode: nothing is saved. <a href="#signin">Sign in</a> to keep your profile.
+              Guest mode: nothing is saved. <RouteLink to="signin">Sign in</RouteLink> to keep your profile.
             </p>
           )}
           {status && <p className="small status" aria-live="polite">{status}</p>}

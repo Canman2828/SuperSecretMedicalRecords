@@ -50,7 +50,7 @@ export interface DrugSearchResult {
 
 // ---------- Interaction tree ----------
 
-/** 'other' = a substance that isn't a medicine or food (e.g. salt substitutes, alcohol, a vitamin). */
+/** 'other' = a substance that isn't a medication or food (e.g. salt substitutes, alcohol, a vitamin). */
 export type ProfileNodeType = 'patient' | 'medication' | 'allergy' | 'food' | 'other';
 
 export interface ProfileNode {
@@ -69,7 +69,7 @@ export type RelationshipStatus =
   | 'warning'
   | 'contraindication'
   | 'possible-allergy-match'
-  /** The label suggests these go together, e.g. a vitamin the medicine can deplete. Still "ask your doctor". */
+  /** The label suggests these go together, e.g. a vitamin the medication can deplete. Still "ask your doctor". */
   | 'complementary';
 
 export interface Relationship {
@@ -186,7 +186,7 @@ export interface MedicationUsesRequest {
 }
 
 /**
- * A short, patient-friendly summary of what a medicine treats, condensed from the
+ * A short, patient-friendly summary of what a medication treats, condensed from the
  * official FDA label. Sourced information, not medical advice — always cite `sourceUrl`.
  */
 export interface MedicationUse {

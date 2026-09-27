@@ -7,10 +7,10 @@ import { Btn, CountPill, Field, IconBtn, Label, Panel, Seg, useAccent } from '..
 import { C, DOT, F, R, SH } from '../ui/theme';
 import { MedicationSearch } from './MedicationSearch';
 
-// Mirrors apps/web/src/profile/ProfilePanel.tsx: medicines (RxNorm search + dose), allergies, foods.
+// Mirrors apps/web/src/profile/ProfilePanel.tsx: medications (RxNorm search + dose), allergies, foods.
 
 const ALLERGY_TYPES: { v: AllergyType; label: string }[] = [
-  { v: 'medication', label: 'Medicine' },
+  { v: 'medication', label: 'Medication' },
   { v: 'food', label: 'Food' },
   { v: 'other', label: 'Other' },
 ];
@@ -52,7 +52,7 @@ export function ProfilePanel() {
 
   return (
     <>
-      <Section icon="pill" title="Medicines" count={profile.medications.length}>
+      <Section icon="pill" title="Medications" count={profile.medications.length}>
         {pending ? (
           <View style={styles.pending}>
             <View style={styles.pendingName}>
@@ -63,7 +63,7 @@ export function ProfilePanel() {
             <SmallField placeholder="How often (e.g. twice daily)" value={pending.frequency} onChange={(v) => setPending({ ...pending, frequency: v })} />
             <SmallField placeholder="Route (e.g. by mouth)" value={pending.route} onChange={(v) => setPending({ ...pending, route: v })} />
             <View style={styles.btnRow}>
-              <Btn label="Add medicine" onPress={saveMedication} />
+              <Btn label="Add medication" onPress={saveMedication} />
               <Btn label="Cancel" variant="neu" onPress={() => setPending(null)} />
             </View>
           </View>

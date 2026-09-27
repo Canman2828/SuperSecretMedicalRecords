@@ -54,7 +54,7 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     immutable: false,
   },
   CONTRAINDICATION: {
-    meaning: 'a situation where this medicine should not be used',
+    meaning: 'a situation where this medication should not be used',
     category: 'jargon',
     immutable: false,
   },

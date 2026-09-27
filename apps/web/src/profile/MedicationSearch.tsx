@@ -42,7 +42,7 @@ export function MedicationSearch({ onSelect }: Props) {
 
   return (
     <div className="search">
-      <label className="field-label" htmlFor="medIn">Add a medicine</label>
+      <label className="field-label" htmlFor="medIn">Add a medication</label>
       <form
         className="input"
         onSubmit={(e) => {
@@ -57,7 +57,7 @@ export function MedicationSearch({ onSelect }: Props) {
           onChange={(e) => setQ(e.target.value)}
           autoComplete="off"
         />
-        <button className="icon-btn" aria-label="Add medicine"><Icon name="plus" /></button>
+        <button className="icon-btn" aria-label="Add medication"><Icon name="plus" /></button>
       </form>
       {(results.length > 0 || loading || error || q.trim().length >= 2) && (
         <ul className="search-results">

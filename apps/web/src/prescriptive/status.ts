@@ -29,7 +29,7 @@ export const NODE_COLOR: Record<ProfileNodeType, number> = {
 
 export const NODE_CAPTION: Record<ProfileNodeType, [mine: string, related: string]> = {
   patient: ['Your profile', 'Your profile'],
-  medication: ['Your medicine', 'Medicine'],
+  medication: ['Your medication', 'Medication'],
   allergy: ['Your allergy', 'Allergy'],
   food: ['Your food', 'Food'],
   other: ['Your item', 'Substance'],

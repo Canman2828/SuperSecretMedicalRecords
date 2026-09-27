@@ -2,6 +2,7 @@
   "expo": {
     "name": "medify.Rx",
     "slug": "medifyrx",
+    "icon": "./assets/app-icon.png",
     "scheme": "medifyrx",
     "version": "0.1.0",
     "orientation": "portrait",

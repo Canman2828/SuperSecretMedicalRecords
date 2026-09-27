@@ -4,7 +4,7 @@ import { env } from '../env.js';
 import { getLabelByName, type LabelSections } from './openfda.js';
 import { findDrugNamesInText, searchDrugs } from './rxnorm.js';
 
-// "What is this medicine used for?" for the scanner's plain-language panel.
+// "What is this medication used for?" for the scanner's plain-language panel.
 //
 // SOURCE INFORMATION, not a decision engine (same rule as openfda.ts): the summary is
 // condensed strictly from the drug's official FDA label (indications_and_usage), and every
@@ -15,8 +15,8 @@ import { findDrugNamesInText, searchDrugs } from './rxnorm.js';
 const MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
 const client = env.aiApiKey ? new GoogleGenAI({ apiKey: env.aiApiKey }) : null;
 
-const CONDENSE_SYSTEM_PROMPT = `You are given the "indications and usage" section from an official medicine label.
-Say what the medicine is used to treat, in plain, simple words at about a 6th-grade reading level.
+const CONDENSE_SYSTEM_PROMPT = `You are given the "indications and usage" section from an official medication label.
+Say what the medication is used to treat, in plain, simple words at about a 6th-grade reading level.
 Use ONLY what the label text says. Do not add conditions, advice, or facts that are not in the text.
 Reply with a short phrase of at most 12 words, no leading "used for", no sentence, no ending period.
 You may keep a number only when it is part of a condition's name, like "type 2 diabetes".

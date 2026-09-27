@@ -47,7 +47,7 @@ export function MedicationSearch({ onSelect }: Props) {
 
   return (
     <View>
-      <Label>Add a medicine</Label>
+      <Label>Add a medication</Label>
       <Field
         placeholder="e.g. Lopressor"
         value={q}
@@ -56,8 +56,8 @@ export function MedicationSearch({ onSelect }: Props) {
         autoCapitalize="none"
         returnKeyType="done"
         onSubmitEditing={submit}
-        accessibilityLabel="Add a medicine"
-        right={<IconBtn icon="plus" label="Add medicine" size={36} onPress={submit} />}
+        accessibilityLabel="Add a medication"
+        right={<IconBtn icon="plus" label="Add medication" size={36} onPress={submit} />}
       />
       {(results.length > 0 || loading || error || q.trim().length >= 2) && (
         <View style={styles.results}>

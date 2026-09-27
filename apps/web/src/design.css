@@ -80,8 +80,8 @@ svg.i{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke
 .brand-name{font-family:var(--f-mark);font-size:27px;font-weight:600;color:var(--ink);line-height:1}
 .brand-name b{font-weight:600;color:var(--dusk)}
 .nav-links{display:flex;gap:6px;margin-left:auto;padding:5px;border-radius:var(--r-pill)}
-.nav-links a{font-family:var(--f-head);font-size:14px;font-weight:600;color:var(--ink-2);text-decoration:none;padding:9px 16px;border-radius:var(--r-pill);transition:color .25s,box-shadow .25s}
-.nav-links a:hover{color:var(--ink)}
+.nav-links a,.nav-links button{font-family:var(--f-head);font-size:14px;font-weight:600;color:var(--ink-2);text-decoration:none;text-align:left;padding:9px 16px;border-radius:var(--r-pill);transition:color .25s,box-shadow .25s}
+.nav-links a:hover,.nav-links button:hover{color:var(--ink)}
 .nav-links a[aria-current="page"]{color:var(--ink);box-shadow:var(--in-sm)}
 .nav .btn{height:46px;padding:0 20px}
 .menu-btn{display:none}

@@ -1,5 +1,5 @@
 // A still "screenshot" of the Prescriptive 3D tree for the home page card: three glowing orbs
-// (medicine, food, substance) joined by red / yellow / green cables. Plain SVG, no WebGL.
+// (medication, food, substance) joined by red / yellow / green cables. Plain SVG, no WebGL.
 // Colors match apps/web/src/prescriptive/status.ts.
 
 const ORBS = {

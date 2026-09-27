@@ -11,7 +11,7 @@ interface Props {
 export const DOT = { medication: '#736A86', allergy: '#8E98AC', food: '#C9A99E' } as const;
 
 const ALLERGY_TYPES: { v: AllergyType; label: string }[] = [
-  { v: 'medication', label: 'Medicine' },
+  { v: 'medication', label: 'Medication' },
   { v: 'food', label: 'Food' },
   { v: 'other', label: 'Other' },
 ];
@@ -64,7 +64,7 @@ export function ProfilePanel({ profile, onChange }: Props) {
 
   return (
     <>
-      <Section icon="pill" title="Medicines" count={profile.medications.length}>
+      <Section icon="pill" title="Medications" count={profile.medications.length}>
         {pending ? (
           <form className="pending" onSubmit={addMedication}>
             <div className="pending-name">
@@ -75,7 +75,7 @@ export function ProfilePanel({ profile, onChange }: Props) {
             <Field placeholder="How often (e.g. twice daily)" value={pending.frequency} onChange={(v) => setPending({ ...pending, frequency: v })} />
             <Field placeholder="Route (e.g. by mouth)" value={pending.route} onChange={(v) => setPending({ ...pending, route: v })} />
             <div className="btn-row">
-              <button className="btn btn-jelly" type="submit">Add medicine</button>
+              <button className="btn btn-jelly" type="submit">Add medication</button>
               <button className="btn btn-neu" type="button" onClick={() => setPending(null)}>Cancel</button>
             </div>
           </form>

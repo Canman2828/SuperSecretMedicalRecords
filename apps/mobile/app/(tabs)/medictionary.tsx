@@ -22,27 +22,6 @@ export default function MedictionaryScreen() {
 
   useEffect(() => () => requestRef.current?.abort(), []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const question: ChatMessage = { role: 'user', text: 'What can Medify help me do?' };
-    let reply = '';
-    let chunks = 0;
-    api.chat({ messages: [question] }, chunk => {
-      chunks += 1;
-      reply += chunk;
-      setMessages([question, { role: 'assistant', text: reply }]);
-    }, controller.signal).then(text => {
-      setMessages([question, { role: 'assistant', text }]);
-      console.log('MEDIFY_NATIVE_CHAT_TEST', JSON.stringify({ chunks, length: text.length, success: true }));
-    }).catch(error => {
-      if (!controller.signal.aborted) {
-        setError(String(error));
-        console.log('MEDIFY_NATIVE_CHAT_TEST', JSON.stringify({ success: false, error: String(error) }));
-      }
-    });
-    return () => controller.abort();
-  }, []);
-
   const send = async () => {
     const text = input.trim();
     if (!text || requestRef.current) return;
@@ -103,7 +82,7 @@ export default function MedictionaryScreen() {
         <Text style={styles.eyebrow}>Conscious learning</Text>
         <Text style={styles.heading}>Medictionary</Text>
         <Text style={styles.subtitle}>
-          Ask about a medicine, a dosage term or a word you heard at an appointment, and get a short, plain-language answer.
+          Ask about a medication, a dosage term, or a word you heard at an appointment, and get a short, plain-language answer.
         </Text>
 
         <View style={styles.panel}>

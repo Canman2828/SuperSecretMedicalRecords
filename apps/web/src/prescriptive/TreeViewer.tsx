@@ -213,7 +213,7 @@ export const TreeViewer = forwardRef<TreeViewerHandle, Props>(function TreeViewe
   return (
     <div className={`tree3d${mode === 'camera' ? ' camera' : ''}${ar !== 'off' ? ' in-ar' : ''}`} ref={box}>
       <video ref={video} className={`tree3d-video${mirrored ? ' mirror' : ''}`} autoPlay playsInline muted hidden={mode !== 'camera'} />
-      <canvas ref={canvas} className="tree3d-canvas" aria-label="3D map of how your medicines, allergies and foods interact" />
+      <canvas ref={canvas} className="tree3d-canvas" aria-label="3D map of how your medications, allergies, and foods interact" />
 
       <div className="hand-cursors" ref={cursorLayer} aria-hidden="true" />
 

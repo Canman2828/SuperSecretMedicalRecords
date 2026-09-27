@@ -1,3 +1,4 @@
+import { RouteLink } from '../ui/RouteLink';
 import { lazy, Suspense } from 'react';
 import { scrollToId } from '../router';
 import { Icon } from '../ui/Icon';
@@ -14,14 +15,14 @@ export function HomePage() {
           <h1 className="rise d1">medify<span className="rx">.Rx</span></h1>
           <p className="tag rise d2">Read it, understand it, and ask about it at your own pace.</p>
           <p className="lead rise d3">
-            Scan a consent form or a prescription label, see how your medicines and allergies connect, and learn
+            Scan a consent form or a prescription label, see how your medications and allergies connect, and learn
             medical terms without the spiral.
           </p>
           <div className="hero-actions rise d4">
             <button className="btn btn-jelly btn-explore" onClick={() => scrollToId('features')}>
               Explore <span className="ar"><Icon name="arrow-down" /></span>
             </button>
-            <span className="hero-note"><span className="pulse-dot" />A learning tool, not a diagnosis</span>
+            <span className="hero-note"><span className="pulse-dot" />A learning tool, not a diagnostic tool</span>
           </div>
         </div>
         <div className="stage" aria-hidden="true">
@@ -39,7 +40,7 @@ export function HomePage() {
       <div className="promises">
         <div className="promise card acc-steel">
           <span className="icon-btn"><Icon name="lock" /></span>
-          <div><h4>Numbers never reworded</h4><p>Dose, timing and warnings are copied word for word.</p></div>
+          <div><h4>Numbers never reworded</h4><p>Dose, timing, and warnings are copied word for word.</p></div>
         </div>
         <div className="promise card acc-lav">
           <span className="icon-btn"><Icon name="pace" /></span>
@@ -57,18 +58,14 @@ export function HomePage() {
             <span className="eyebrow">Three tools, one goal</span>
             <h2 id="features-title">Improve understanding of your health</h2>
           </div>
-          <p>
-            Each tool answers a different moment: holding a form you don't understand, managing what you take, and
-            wondering what a word means.
-          </p>
         </div>
         <div className="cards">
-          <a className="fcard card acc-steel" href="#compremedic">
+          <RouteLink className="fcard card acc-steel" to="compremedic">
             <div className="fcard-top"><span className="orb"><Icon name="scan" /></span><span className="goal">Comprehension</span></div>
             <div><h3>Compremedic</h3></div>
             <p className="sub">Snap it. Read it plainly. Hear it.</p>
             <p className="desc">
-              Photograph or upload a prescription, consent form or other document (photo, PDF or Word). Read it
+              Photograph or upload a prescription, consent form, or other document (photo, PDF, or Word). Read it
               in plain words beside the original, hear it aloud, and tap any word to have it explained.
             </p>
             <div className="mini inset">
@@ -78,28 +75,28 @@ export function HomePage() {
               </div>
             </div>
             <div className="fcard-foot"><span>Open Compremedic</span><span className="icon-btn"><Icon name="arrow-ne" /></span></div>
-          </a>
+          </RouteLink>
 
-          <a className="fcard card acc-blush" href="#prescriptive">
+          <RouteLink className="fcard card acc-blush" to="prescriptive">
             <div className="fcard-top"><span className="orb"><Icon name="tree" /></span><span className="goal">Awareness</span></div>
             <div><h3>Prescriptive</h3></div>
-            <p className="sub">Your medicines, mapped.</p>
+            <p className="sub">Your medications, mapped.</p>
             <p className="desc">
-              Add your prescriptions, allergies and foods to build a living tree of what doesn't mix with your
+              Add your prescriptions, allergies, and foods to build a living tree of what doesn't mix with your
               situation, each link traced to its source.
             </p>
             <div className="mini inset">
               <OrbsPreview />
             </div>
             <div className="fcard-foot"><span>Open Prescriptive</span><span className="icon-btn"><Icon name="arrow-ne" /></span></div>
-          </a>
+          </RouteLink>
 
-          <a className="fcard card acc-lav" href="#medictionary">
+          <RouteLink className="fcard card acc-lav" to="medictionary">
             <div className="fcard-top"><span className="orb"><Icon name="book" /></span><span className="goal">Conscious learning</span></div>
             <div><h3>Medictionary</h3></div>
             <p className="sub">Answers sized to what you're ready for.</p>
             <p className="desc">
-              Look up medicines, dosage terms or words you heard at an appointment. Gentle guardrails keep you from
+              Look up medications, dosage terms, or words you heard at an appointment. Gentle guardrails keep you from
               worst-case spirals and endless rabbit holes.
             </p>
             <div className="mini inset">
@@ -107,7 +104,7 @@ export function HomePage() {
               <div className="mini-steps"><span className="f" /><span /><span /></div>
             </div>
             <div className="fcard-foot"><span>Open Medictionary</span><span className="icon-btn"><Icon name="arrow-ne" /></span></div>
-          </a>
+          </RouteLink>
         </div>
       </section>
     </section>

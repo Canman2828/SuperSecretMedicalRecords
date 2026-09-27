@@ -1,6 +1,6 @@
 import { getLabelByName, getLabelByRxCui, type LabelSections } from './openfda.js';
 
-// "What can't I eat or drink with this medicine?" — read straight from the drug's official FDA label.
+// "What can't I eat or drink with this medication?" — read straight from the drug's official FDA label.
 //
 // SOURCE INFORMATION, not a decision engine (same rule as openfda.ts): a food is only reported when a
 // sentence in the label BOTH names it AND tells the reader to avoid it ("do not", "avoid", "should not",

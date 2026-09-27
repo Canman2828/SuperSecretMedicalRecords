@@ -102,7 +102,7 @@ export const DEMO_RELATIONSHIPS: DemoRelationship[] = [
     source: { organization: 'FDA', label: 'Amoxicillin drug label', url: dailymed('amoxicillin') },
     sourceText: undefined, // TODO paste verified label text
   },
-  // Allergy-driven: medicines to avoid when the profile lists a penicillin allergy.
+  // Allergy-driven: medications to avoid when the profile lists a penicillin allergy.
   {
     a: PENICILLIN_ALLERGY,
     aKind: 'allergy',
@@ -192,7 +192,7 @@ export const DEMO_RELATIONSHIPS: DemoRelationship[] = [
     status: 'contraindication',
     title: 'Contraindication',
     explanation:
-      'The sildenafil label says it must not be used with nitrate medicines, because together they can cause a dangerous drop in blood pressure.',
+      'The sildenafil label says it must not be used with nitrate medications, because together they can cause a dangerous drop in blood pressure.',
     source: { organization: 'FDA', label: 'Sildenafil drug label', url: dailymed('sildenafil') },
     sourceText: undefined, // TODO paste verified label text
   },

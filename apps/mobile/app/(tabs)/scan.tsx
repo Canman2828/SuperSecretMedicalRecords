@@ -67,7 +67,7 @@ export default function ScanScreen() {
         </View>
         <Text style={styles.title}>medify.Rx Lens</Text>
         <Text style={styles.body}>
-          Point your camera at a prescription or form. Doses, warnings and medical terms are highlighted right on the
+          Point your camera at a prescription or form. Doses, warnings, and medical terms are highlighted right on the
           page, and a tap explains them. Photos are read on your phone and deleted right away.
         </Text>
         <Btn label="Allow camera" iconLeft="camera" onPress={requestPermission} style={{ alignSelf: 'center' }} />

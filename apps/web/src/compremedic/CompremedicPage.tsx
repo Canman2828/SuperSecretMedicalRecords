@@ -1,3 +1,4 @@
+import { RouteLink } from '../ui/RouteLink';
 import { lookupGlossary, type ExplainResponse, type MedDocument } from '@medifyrx/shared';
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { api } from '../api/client';
@@ -28,7 +29,7 @@ const METHOD_LABEL: Record<ExtractMethod | 'sample' | 'saved', string> = {
 };
 
 const SOURCE_NOTE: Record<SimplifySource, string> = {
-  ai: 'Rewritten in plain words. Doses, times and warnings are locked.',
+  ai: 'Rewritten in plain words. Doses, times, and warnings are locked.',
   mixed: 'Partly rewritten; some parts use the medify glossary. Locked values are unchanged.',
   glossary: 'Simplified with the medify glossary (AI rewrite unavailable).',
 };
@@ -283,7 +284,7 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
               <>
                 <span className="icon-btn"><Icon name="camera" /></span>
                 <strong>Take a photo or drop a file here</strong>
-                <span className="muted small">Photos, PDFs and Word documents (.docx). Scanned PDFs work too.</span>
+                <span className="muted small">Photos, PDFs, and Word documents (.docx). Scanned PDFs work too.</span>
                 <span className="drop-actions">
                   <button type="button" className="btn btn-jelly" style={{ height: 44 }} onClick={takePhoto}><Icon name="camera" />Take photo</button>
                   <button type="button" className="btn btn-neu" style={{ height: 44 }} onClick={() => fileInput.current?.click()}><Icon name="upload" />Upload file</button>
@@ -404,7 +405,7 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
                 </ul>
               )}
               {explanation.phrases.some((p) => p.locked) && (
-                <p className="small muted">Highlighted values are copied exactly from your document and never reworded. If one looks wrong, trust the printed document and ask your pharmacist.</p>
+                <p className="small muted">Highlighted values are copied exactly from your document and never reworded. If one looks wrong, trust the printed document and ask your doctor or pharmacist.</p>
               )}
               {explanation.result?.needsVerification && (
                 <p className="small muted">Please check this with a pharmacist or healthcare professional.</p>
@@ -417,8 +418,8 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
             <div>
               <h4>Protected details</h4>
               <p className="small muted">
-                Highlighted values are copied exactly from the original and never rewritten: dose, how often, how long
-                and warnings. If anything looks different from your document, trust the document and ask your pharmacist.
+                Highlighted values are copied exactly from the original and never rewritten: dose, how often, how long,
+                and warnings. If anything looks different from your document, trust the document and ask your doctor or pharmacist.
               </p>
             </div>
           </div>
@@ -435,13 +436,13 @@ export function CompremedicPage({ knownMedications, loggedIn }: { knownMedicatio
           status={
             loggedIn
               ? saved.length > 0 && <span className="cl-ok"><Icon name="check" size={14} />{saved.length} saved</span>
-              : <span className="cl-wait">Sign in to see these</span>
+              : <span className="cl-wait">Sign in to see documents</span>
           }
         >
           {!loggedIn ? (
             <p className="small muted">
               Documents you save in the phone app appear here.{' '}
-              <a className="text-btn" href="#signin">Sign in</a> to see them.
+              <RouteLink className="text-btn" to="signin">Sign in</RouteLink> to see documents.
             </p>
           ) : savedError ? (
             <p className="step-error" role="alert">{savedError}</p>

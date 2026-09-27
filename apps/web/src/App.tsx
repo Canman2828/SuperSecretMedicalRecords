@@ -7,11 +7,11 @@ import { HomePage } from './home/HomePage';
 import { Footer, Nav } from './layout/Shell';
 import { MedictionaryPage } from './medictionary/MedictionaryPage';
 import { EMPTY_PROFILE, PrescriptivePage } from './prescriptive/PrescriptivePage';
-import { useHashRoute } from './router';
+import { navigate, useRoute } from './router';
 
 export function App() {
-  const page = useHashRoute();
-  // Profile lives here so it survives moving between pages (and Compremedic can highlight its medicines).
+  const page = useRoute();
+  // Profile lives here so it survives moving between pages (and Compremedic can highlight its medications).
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [loggedIn, setLoggedIn] = useState(Boolean(getToken()));
 
@@ -45,7 +45,7 @@ export function App() {
             onSignedIn={(token, remember) => {
               setToken(token, remember);
               setLoggedIn(true);
-              location.hash = '#prescriptive';
+              navigate('prescriptive');
             }}
           />
         )}

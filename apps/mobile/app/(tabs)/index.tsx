@@ -9,7 +9,7 @@ import { ACC, C, F, R, SH, type Accent } from '../../src/ui/theme';
 // Mirrors apps/web/src/home/HomePage.tsx: hero, three promises, then one card per tool.
 
 const PROMISES: { icon: IconName; title: string; text: string; accent: Accent }[] = [
-  { icon: 'lock', title: 'Numbers never reworded', text: 'Dose, timing and warnings are copied word for word.', accent: ACC.steel },
+  { icon: 'lock', title: 'Numbers never reworded', text: 'Dose, timing, and warnings are copied word for word.', accent: ACC.steel },
   { icon: 'pace', title: 'You set the depth', text: 'Start with the basics. Go further only when you choose to.', accent: ACC.lav },
   { icon: 'shield', title: 'Every link has a source', text: 'Interactions trace back to a real drug label you can open.', accent: ACC.blush },
 ];
@@ -30,14 +30,14 @@ export default function HomeScreen() {
         </Text>
         <Text style={styles.tag}>Read it, understand it, and ask about it at your own pace.</Text>
         <Text style={styles.lead}>
-          Scan a consent form or a prescription label, see how your medicines and allergies connect, and learn medical
+          Scan a consent form or a prescription label, see how your medications and allergies connect, and learn medical
           terms without the spiral.
         </Text>
         <View style={styles.heroActions}>
           <Btn label="Explore" icon="arrow-down" height={56} onPress={() => scroll.current?.scrollTo({ y: featuresY - 16 })} />
           <View style={styles.note}>
             <View style={styles.pulseDot} />
-            <Text style={styles.noteText}>A learning tool, not a diagnosis</Text>
+            <Text style={styles.noteText}>A learning tool, not a diagnostic tool</Text>
           </View>
         </View>
       </View>
@@ -63,10 +63,6 @@ export default function HomeScreen() {
       <View onLayout={(e) => setFeaturesY(e.nativeEvent.layout.y)} style={styles.sectionHead}>
         <Eyebrow dot={C.dusk}>Four tools, one goal</Eyebrow>
         <Text style={styles.h2} accessibilityRole="header">Improve understanding of your health</Text>
-        <Text style={styles.sectionText}>
-          Each tool answers a different moment: holding a form you don't understand, managing what you take, and
-          wondering what a word means.
-        </Text>
       </View>
 
       <FeatureCard
@@ -75,7 +71,7 @@ export default function HomeScreen() {
         goal="Comprehension"
         title="Scan"
         sub="Point, highlight, understand."
-        desc="Hold your camera over a label. Doses, warnings and medical terms light up right on the page, and a tap explains them."
+        desc="Hold your camera over a label. Doses, warnings, and medical terms light up right on the page, and a tap explains them."
         href="/scan"
       >
         <View style={styles.miniScan}>
@@ -89,15 +85,15 @@ export default function HomeScreen() {
         goal="Comprehension"
         title="Compremedic"
         sub="Snap it. Read it plainly. Hear it."
-        desc="Bring the text from a consent form, bottle or lens box. We set a plain-language version beside the original, with audio for both."
+        desc="Bring the text from a consent form, bottle, or lens box. We set a plain-language version beside the original, with audio for both."
         href="/compremedic"
       >
         <View style={styles.miniCompare}>
-          <View style={styles.paper}>
+          <View style={[styles.paper, styles.comparePaper]}>
             <Text style={styles.paperLabel}>Original</Text>
             <Text style={styles.paperText}>Take 1 cap PO TID × 10 days</Text>
           </View>
-          <View style={styles.paper}>
+          <View style={[styles.paper, styles.comparePaper]}>
             <Text style={styles.paperLabel}>Plain</Text>
             <Text style={styles.paperText}>
               Swallow 1 capsule <Lock>3× a day</Lock> for <Lock>10 days</Lock>
@@ -111,8 +107,8 @@ export default function HomeScreen() {
         icon="tree"
         goal="Awareness"
         title="Prescriptive"
-        sub="Your medicines, mapped."
-        desc="Add your prescriptions, allergies and foods to build a living tree of what doesn't mix with your situation, each link traced to its source."
+        sub="Your medications, mapped."
+        desc="Add your prescriptions, allergies, and foods to build a living tree of what doesn't mix with your situation, each link traced to its source."
         href="/prescriptive"
       >
         <MiniTree />
@@ -124,7 +120,7 @@ export default function HomeScreen() {
         goal="Conscious learning"
         title="Medictionary"
         sub="Answers sized to what you're ready for."
-        desc="Look up medicines, dosage terms or words you heard at an appointment. Gentle guardrails keep you from worst-case spirals and endless rabbit holes."
+        desc="Look up medications, dosage terms, or words you heard at an appointment. Gentle guardrails keep you from worst-case spirals and endless rabbit holes."
         href="/medictionary"
       >
         <View style={[styles.paper, styles.miniSearch]}>
@@ -277,7 +273,6 @@ const styles = StyleSheet.create({
 
   sectionHead: { gap: 12, marginTop: 36 },
   h2: { fontFamily: F.head, fontSize: 32, lineHeight: 36, color: C.ink, letterSpacing: -0.3 },
-  sectionText: { fontFamily: F.body, fontSize: 16, lineHeight: 24, color: C.ink3 },
 
   fcard: { gap: 14, padding: 24, borderRadius: R.xl, backgroundColor: C.surface, boxShadow: SH.outLg },
   fcardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
@@ -294,6 +289,7 @@ const styles = StyleSheet.create({
   paperLabel: { fontFamily: F.headBold, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: C.ink3, marginBottom: 4 },
   paperText: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: C.ink3 },
   miniCompare: { flexDirection: 'row', gap: 10 },
+  comparePaper: { flex: 1, minWidth: 0 },
   lock: { fontFamily: F.bodyBold, borderRadius: 6, overflow: 'hidden' },
   miniScan: { backgroundColor: C.white, borderRadius: 12, boxShadow: SH.paper, padding: 14 },
   miniScanText: { fontFamily: F.mono, fontSize: 13, lineHeight: 24, color: C.ink2 },

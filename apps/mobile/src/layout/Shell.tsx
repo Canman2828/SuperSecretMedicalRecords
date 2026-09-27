@@ -28,8 +28,8 @@ export function Footer() {
       <Brand size={22} />
       <Guard icon="siren" title="In an emergency, call 911" tone="alert">
         If you think you are having a medical emergency, call 911 or your local emergency number right away. medify.Rx
-        is a learning and discovery tool. It does not give professional medical advice, diagnosis or treatment. Always
-        ask your doctor, pharmacist or another qualified health professional about your health and your medicines.
+        is a learning and discovery tool. It does not give professional medical advice, diagnosis, or treatment. Always
+        ask your doctor, pharmacist, or another qualified health professional about your health and your medications.
       </Guard>
       <View style={styles.bottom}>
         <Text style={styles.bottomText}>© 2026 medify.Rx. Hackathon prototype using synthetic data only.</Text>
